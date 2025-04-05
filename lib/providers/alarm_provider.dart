@@ -1,9 +1,5 @@
-import 'package:demo_proj_2/models/alarm_sound.dart';
+import 'package:listify/models/alarm_sound.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sqflite/sqflite.dart';
-
-import '../models/alarm_sound.dart';
 import '../services/database_services.dart';
 
 class AlarmProvider with ChangeNotifier {

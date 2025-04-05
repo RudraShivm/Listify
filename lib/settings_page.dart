@@ -1,6 +1,6 @@
-import 'package:demo_proj_2/models/alarm_sound.dart';
-import 'package:demo_proj_2/providers/alarm_provider.dart';
-import 'package:demo_proj_2/providers/theme_provider.dart';
+import 'package:listify/models/alarm_sound.dart';
+import 'package:listify/providers/alarm_provider.dart';
+import 'package:listify/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
@@ -153,11 +153,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           actions: [
             TextButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStatePropertyAll(
-                  Color.fromRGBO(245, 224, 187, 1),
-                ),
-              ),
               onPressed: () async {
                 await _audioPlayer.stop();
                 if (context.mounted) {

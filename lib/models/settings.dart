@@ -1,4 +1,4 @@
-import 'package:demo_proj_2/models/alarm_sound.dart';
+import 'package:listify/models/alarm_sound.dart';
 import 'package:flutter/material.dart';
 
 class Settings {

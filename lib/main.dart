@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/model/volume_settings.dart';
 import 'package:alarm/utils/alarm_set.dart';
-import 'package:demo_proj_2/providers/alarm_provider.dart';
-import 'package:demo_proj_2/models/settings.dart';
-import 'package:demo_proj_2/models/task.dart';
-import 'package:demo_proj_2/services/database_services.dart';
-import 'package:demo_proj_2/settings_page.dart';
-import 'package:demo_proj_2/theme/theme.dart';
-import 'package:demo_proj_2/providers/theme_provider.dart';
+import 'package:listify/providers/alarm_provider.dart';
+import 'package:listify/models/settings.dart';
+import 'package:listify/models/task.dart';
+import 'package:listify/services/database_services.dart';
+import 'package:listify/settings_page.dart';
+import 'package:listify/theme/theme.dart';
+import 'package:listify/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/rendering.dart';
@@ -22,8 +22,8 @@ void main() async {
     await Alarm.init();
   });
 
-  final DatabaseServices _databaseServices = DatabaseServices.instance;
-  Settings settings = await _databaseServices.getSettings();
+  final DatabaseServices databaseServices = DatabaseServices.instance;
+  Settings settings = await databaseServices.getSettings();
   runApp(
     MultiProvider(
       providers: [
@@ -86,6 +86,7 @@ class _RootPageState extends State<RootPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text('To-Do List'),
         actions: [
@@ -576,55 +577,59 @@ class _RootPageState extends State<RootPage> {
   void _editTask(Task task) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
+        double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
         return Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10.0),
-                child: Text(
-                  'Edit Task',
-                  style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.w500),
-                  textAlign: TextAlign.start,
+          padding: EdgeInsets.only(left: 15.0, right: 15.0, top: 15.0, bottom: keyboardHeight > 0 ? keyboardHeight : 15.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: Text(
+                    'Edit Task',
+                    style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.w500),
+                    textAlign: TextAlign.start,
+                  ),
                 ),
-              ),
-              TextField(
-                maxLength: 21,
-                decoration: InputDecoration(
-                  hintText: 'title of the task...',
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(fontStyle: FontStyle.italic),
+                TextField(
+                  maxLength: 21,
+                  decoration: InputDecoration(
+                    hintText: 'title of the task...',
+                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                  controller: TextEditingController(text: task.title),
+                  onChanged: (e) {
+                    task.title = e;
+                  },
                 ),
-                controller: TextEditingController(text: task.title),
-                onChanged: (e) {
-                  task.title = e;
-                },
-              ),
-              TextField(
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'further details about this task...',
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(fontStyle: FontStyle.italic),
+                TextField(
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'further details about this task...',
+                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                  controller: TextEditingController(text: task.content),
+                  onChanged: (e) {
+                    task.content = e;
+                  },
                 ),
-                controller: TextEditingController(text: task.content),
-                onChanged: (e) {
-                  task.content = e;
-                },
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _databaseServices.updateTask(task);
-                    Navigator.of(context).pop();
-                  });
-                },
-                child: Text('Done'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _databaseServices.updateTask(task);
+                      Navigator.of(context).pop();
+                    });
+                  },
+                  child: Text('Done'),
+                ),
+              ],
+            ),
           ),
         );
       },

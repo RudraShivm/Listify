@@ -1,6 +1,6 @@
-import 'package:demo_proj_2/models/alarm_sound.dart';
-import 'package:demo_proj_2/models/settings.dart';
-import 'package:demo_proj_2/models/task.dart';
+import 'package:listify/models/alarm_sound.dart';
+import 'package:listify/models/settings.dart';
+import 'package:listify/models/task.dart';
 import 'package:flutter/material.dart';
 
 // Removed unused import
@@ -181,19 +181,19 @@ class DatabaseServices {
 
         settings = initSettings;
       } else {
-        Map<String, String> temp_settingsMap = {};
+        Map<String, String> tempSettingsmap = {};
         for (var e in settingsMapList) {
-          temp_settingsMap[e[_propertyColumn] as String] =
+          tempSettingsmap[e[_propertyColumn] as String] =
               e[_valueColumn] as String;
         }
         settings = Settings(
           themeMode:
-              temp_settingsMap[SettingsProps.themeMode] == 'light'
+              tempSettingsmap[SettingsProps.themeMode] == 'light'
                   ? ThemeMode.light
                   : ThemeMode.dark,
           alarmSound: AlarmSound(
-            name: temp_settingsMap[SettingsProps.alarmSoundName]!,
-            location: temp_settingsMap[SettingsProps.alarmSoundLocation]!,
+            name: tempSettingsmap[SettingsProps.alarmSoundName]!,
+            location: tempSettingsmap[SettingsProps.alarmSoundLocation]!,
           ),
         );
       }
