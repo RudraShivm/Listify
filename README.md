@@ -22,6 +22,9 @@ The app emphasizes user experience and offers a minimal but essential set of fea
 - ### ➕ Create a Task
   Tap the **plus (+)** button at the bottom right to add a new task with a title and optional description.  
   You can also set an alarm for the task.
+  
+- ### 🔄 Reorder Tasks 
+  You can reorder tasks by long-pressing (holding) a task. This will allow you to drag and drop the task to a new position in the list. This feature helps in organizing tasks based on priority or preference.
 
 - ### ✏️ Edit a Task
   Tasks can be modified by selecting `⋮ > Edit`.  
