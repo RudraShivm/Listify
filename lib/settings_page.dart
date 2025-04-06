@@ -18,9 +18,12 @@ class _SettingsPageState extends State<SettingsPage> {
   // List of MP3 files from assets (manually defined)
   final List<AlarmSound> alarmSounds = [
     AlarmSound(name: 'Bedside Clock', location: 'assets/sounds/bedside.mp3'),
-    AlarmSound(name: 'Funny', location: 'assets/sounds/funny-alarm.mp3'),
-    AlarmSound(name: 'Marimba', location: 'assets/sounds/marimba-alarm.mp3'),
+    AlarmSound(name: 'Tsundere Twintails', location: 'assets/sounds/tsundere-twintails.mp3'),
     AlarmSound(name: 'Two Face', location: 'assets/sounds/two-face.mp3'),
+    AlarmSound(name: 'Marimba 1', location: 'assets/sounds/marimba-1.mp3'),
+    AlarmSound(name: 'Marimba 2', location: 'assets/sounds/marimba-2.mp3'),
+    AlarmSound(name: 'Funny', location: 'assets/sounds/funny-alarm.mp3'),
+
   ];
   String currentAudioPath = '';
 
