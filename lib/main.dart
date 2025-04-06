@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:alarm/alarm.dart';
@@ -7,6 +8,7 @@ import 'package:listify/providers/alarm_provider.dart';
 import 'package:listify/models/settings.dart';
 import 'package:listify/models/task.dart';
 import 'package:listify/services/database_services.dart';
+import 'package:listify/services/permission.dart';
 import 'package:listify/settings_page.dart';
 import 'package:listify/theme/theme.dart';
 import 'package:listify/providers/theme_provider.dart';
@@ -68,14 +70,15 @@ class _RootPageState extends State<RootPage> {
   bool setAlarm = false;
   List<Task> tasks = [];
   Map<int, Task> tasksMap = {};
+  StreamSubscription? _alarmStopSubscription;
 
   @override
   void initState() {
     super.initState();
-    // initiate settings if not done yet
-
     // alarm related
-    Future.microtask(() => checkAndroidScheduleExactAlarmPermission());
+    AlarmPermissions.checkNotificationPermission().then(
+          (_) => AlarmPermissions.checkAndroidScheduleExactAlarmPermission(),
+    );
     Alarm.ringing.listen((AlarmSet alarmSet) {
       for (final alarm in alarmSet.alarms) {
         _showAlarmModal(alarm);
@@ -115,38 +118,62 @@ class _RootPageState extends State<RootPage> {
       context: context,
       isDismissible: false, // Prevent user from dismissing without action
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "Alarm Ringing!",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                alarm.notificationSettings.title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
-              ),
-              SizedBox(height: 8),
-              Text(
-                alarm.notificationSettings.body,
-                style: TextStyle(fontSize: 18),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  await Alarm.stop(alarm.id); // Stop the alarm
-                  if (context.mounted) {
-                    Navigator.of(context).pop(); // Close modal
-                    setState(() {});
-                  }
-                },
-                child: Text("Stop Alarm"),
-              ),
-            ],
+        StreamSubscription<AlarmSet>? ringingSubscription;
+
+        // Start listening after the first frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ringingSubscription = Alarm.ringing.listen((alarms) {
+            if (alarms.containsId(alarm.id)) return;
+            ringingSubscription?.cancel();
+            if (Navigator.of(context).canPop()) {
+              _databaseServices.updateTask(tasks.firstWhere((task) => task.id == alarm.id).copyWith(status: 1));
+              Navigator.of(context).pop(); // dismiss the modal
+            }
+          });
+        });
+        return PopScope(
+          canPop: true, // allow popping
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) {
+              setState(() {
+                ringingSubscription?.cancel(); // clean up when modal is popped
+              });
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  "Alarm Ringing!",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  alarm.notificationSettings.title,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  alarm.notificationSettings.body,
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    await Alarm.stop(alarm.id); // Stop the alarm
+                    _databaseServices.updateTask(tasks.firstWhere((task) => task.id == alarm.id).copyWith(status: 1));
+                    if (context.mounted) {
+                      Navigator.of(context).pop(); // Close modal
+                      setState(() {});
+                    }
+                  },
+                  child: Text("Stop Alarm"),
+                ),
+              ],
+            ),
           ),
         );
       },
