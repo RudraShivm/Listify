@@ -8,7 +8,7 @@ A simple To-Do app.
 You may head to the [Releases](https://github.com/RudraShivm/Listify/releases) tab to check out all the versions of the app.  
 Download the APK for the latest version of **Listify** from the link below:  
 <br>
-[![logo](https://drive.google.com/uc?export=view&id=1XNQRJktTXWdk04B02Soss08kkuhHWRqL)](URL_TO_RELEASE)
+[![logo](https://drive.google.com/uc?export=view&id=1XNQRJktTXWdk04B02Soss08kkuhHWRqL)](https://github.com/RudraShivm/Listify/releases/download/v1.0.0/listify_v1.0.0.apk)
 
 ## 🛠️ Tools Used
 - Flutter
