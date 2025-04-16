@@ -1,4 +1,4 @@
-![Banner](https://drive.google.com/uc?export=view&id=1suJzQp-MEcjFXQZCF5kl9VZi5TF77oCR)
+![Banner](assets/docs/Listify_banner.png)
 
 # Listify
 
@@ -8,7 +8,7 @@ A simple To-Do app.
 You may head to the [Releases](https://github.com/RudraShivm/Listify/releases) tab to check out all the versions of the app.  
 Download the APK for the latest version of **Listify** from the link below:  
 <br>
-[![logo](https://drive.google.com/uc?export=view&id=1XNQRJktTXWdk04B02Soss08kkuhHWRqL)](https://github.com/RudraShivm/Listify/releases/download/v1.0.0/listify_v1.0.0.apk)
+[![logo](assets/docs/Download_button.png)](https://github.com/RudraShivm/Listify/releases/download/v1.0.0/listify_v1.0.0.apk)
 
 ## 🛠️ Tools Used
 - Flutter
@@ -23,12 +23,12 @@ The app emphasizes user experience and offers a minimal but essential set of fea
   Tap the **plus (+)** button at the bottom right to add a new task with a title and optional description.  
   You can also set an alarm for the task.
   <br><br>
-  ![create task gif](https://drive.google.com/uc?export=view&id=18eUKNAoKatlQjRg2OpFzZ_zKY9p9JMMg)
+  ![create task gif](assets/docs/create_task.gif)
 
 - ### 👆 Tap on Task to reveal description
    Tap on a task to expand the tile and reveal its description.
   <br><br>
-  ![tap to reveal task description gif](https://drive.google.com/uc?export=view&id=11ZbNc95Y9VVzQHqIsTp0ktVndI0GLWTS)
+  ![tap to reveal task description gif](assets/docs/tap_to_reveal_task.gif)
   
 - ### 🔄 Reorder Tasks 
   You can reorder tasks by long-pressing (holding) a task. This will allow you to drag and drop the task to a new position in the list. This feature helps in organizing tasks based on priority or preference.
@@ -37,21 +37,21 @@ The app emphasizes user experience and offers a minimal but essential set of fea
   Tasks can be modified by selecting `⋮ > Edit`.  
   You can update the title and description from the pop-up menu.
 <br><br>
-![edit](https://drive.google.com/uc?export=view&id=1t1Pm8D0yzgqEmJLkQ9fookIyRXpXzjtq)
+![edit](assets/docs/edit_task.gif)
 - ### 🗑️ Delete a Task
   There are two ways to delete a task:
   - Select `⋮ > Delete`
   - Swipe the task from right to left
 <br><br>
-![swipe to delete](https://drive.google.com/uc?export=view&id=1YcwRlP_J4Nsk9t65L2ARc49d0ARanBzs)
+![swipe to delete](assets/docs/delete_by_swipe.gif)
 - ### ⚙️ Change Theme and Alarm Sound
   Tap the **settings `⚙️` icon** at the top-right of the app bar to access the settings page.  
   From there, you can:
   - Change the theme
   - Choose a different alarm sound
 <br><br>
-![change theme](https://drive.google.com/uc?export=view&id=15tpzCiBxiYqz9lUyjko_K2yhNHbpgZVd)
-![change alarm sound](https://drive.google.com/uc?export=view&id=15budBmwGlVoi1qMiZMAN-sgHVrS4Yn5I)
+![change theme](assets/docs/change_theme.gif)
+![change alarm sound](assets/docs/change_alarm_sound.gif)
 ## 🧑‍💻 Getting Started (for developers)
 
 To run this project locally, follow these steps:
