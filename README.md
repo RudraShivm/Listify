@@ -2,14 +2,17 @@
 
 # Listify
 
-A simple To-Do app.
+A simple To-Do app for android.
 
 ## 📦 Installation
 You may head to the [Releases](https://github.com/RudraShivm/Listify/releases) tab to check out all the versions of the app.  
 Download the APK for the latest version of **Listify** from the link below:  
 <br>
 [![logo](assets/docs/Download_button.png)](https://github.com/RudraShivm/Listify/releases/download/v1.0.0/listify_v1.0.0.apk)
-
+<br>
+Or Scan QR Code
+<br>
+<img src="assets/docs/qrCode.png" alt="qr code" width="200"/>
 ## 🛠️ Tools Used
 - Flutter
 - SQLite (local storage)
