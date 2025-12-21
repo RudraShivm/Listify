@@ -5,6 +5,7 @@ export default defineConfig(({ mode }) => {
   // Use (process as any).cwd() to resolve the type error in environments where Node.js types are not fully defined in the config context
   const env = loadEnv(mode, (process as any).cwd(), '');
   return {
+    base: '/Listify/',
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
