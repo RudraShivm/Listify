@@ -5,7 +5,8 @@ on:
     branches: [ v2-main ]
   pull_request:
     branches: [ v2-main ]
-
+  workflow_dispatch:
+  
 permissions:
   contents: write
 
