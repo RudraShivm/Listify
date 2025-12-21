@@ -1,0 +1,8 @@
+{
+  "name": "Listify",
+  "description": "A calm, scholarly productivity app for students to manage notes, routines, and reminders.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
