@@ -69,7 +69,7 @@ export const formatTime = (date: Date | string, format24h: boolean): string => {
 
 // --- Event Generation ---
 
-export const generateHolidayEvents = (breakpoints: RoutineBreakpoint[]): Event[] => {
+export const generateHolidayEvents = (breakpoints: RoutineBreakpoint[], routineId?: string): Event[] => {
     const events: Event[] = [];
     breakpoints.forEach(bp => {
         const start = new Date(bp.startDate);
@@ -85,7 +85,8 @@ export const generateHolidayEvents = (breakpoints: RoutineBreakpoint[]): Event[]
                 endTime: new Date(current.setHours(23,59,59,999)).toISOString(),
                 isAllDay: true,
                 tags: ['holiday'],
-                recurrence: 'none'
+                recurrence: 'none',
+                routineId: routineId // Link holiday events to the routine
             });
             current = addDays(current, 1);
         }
@@ -95,9 +96,9 @@ export const generateHolidayEvents = (breakpoints: RoutineBreakpoint[]): Event[]
 
 export const generateEventsFromRoutine = (routine: Routine): Event[] => {
   const generatedEvents: Event[] = [];
-  
+
   if (routine.createHolidayEvents) {
-      generatedEvents.push(...generateHolidayEvents(routine.breakpoints));
+      generatedEvents.push(...generateHolidayEvents(routine.breakpoints, routine.id));
   }
   
   const startDateStr = routine.startDate;

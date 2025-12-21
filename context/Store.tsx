@@ -76,7 +76,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     defaultEventDuration: 60,
     createHolidayEvents: true,
     theme: 'system',
-    themeId: 'academic',
+    themeId: 'notion',
     startOfWeek: 'saturday',
     timeFormat: '12h',
     defaultView: ViewType.NOTES,
@@ -236,7 +236,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setEvents(prev => [...prev, ...newEvents]);
   };
 
-  const deleteRoutine = (id: string) => setRoutines(prev => prev.filter(r => r.id !== id));
+  const deleteRoutine = (id: string) => {
+    // Delete all events created by this routine
+    setEvents(prev => prev.filter(e => e.routineId !== id));
+    // Delete the routine itself
+    setRoutines(prev => prev.filter(r => r.id !== id));
+  };
 
   const getTodosForDate = (date: string) => {
     const list = dailyTodos.find(d => d.date === date);
@@ -281,9 +286,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Function to clear only app-specific localStorage keys (not auth session)
+  // Function to clear only app-specific localStorage keys (not auth session or settings)
   const clearLocalDataOnly = () => {
-    const appKeys = ['events', 'notes', 'routines', 'dailyTodos', 'tags', 'settings'];
+    const appKeys = ['events', 'notes', 'routines', 'dailyTodos', 'tags'];
     appKeys.forEach(key => localStorage.removeItem(key));
     clearLocalState();
     showToast('Local data cleared successfully', 'success');
@@ -298,16 +303,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
-    // If logged in, clear account data from Supabase
-    if (window.confirm("This will permanently delete ALL your account data from our servers, including events, notes, routines, todos, and settings. This action cannot be undone. Are you sure?")) {
+    // If logged in, clear account data from Supabase (but preserve settings)
+    if (window.confirm("This will permanently delete all your account data from our servers, including events, notes, routines, and todos. Your settings will be preserved. This action cannot be undone. Are you sure?")) {
       try {
         setIsSyncing(true);
         showToast('Deleting account data...', 'info');
 
-        // First delete from Supabase
+        // Clear data from Supabase but preserve settings
         const { error } = await supabase
           .from('user_data')
-          .delete()
+          .update({
+            events: [],
+            notes: [],
+            routines: [],
+            daily_todos: [],
+            tags: [],
+            updated_at: new Date().toISOString()
+            // settings field is intentionally omitted to preserve it
+          })
           .eq('user_id', user.id);
 
         if (error) {

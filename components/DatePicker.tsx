@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -24,6 +25,42 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(
         value ? new Date(value) : undefined
     );
+    const [modalPosition, setModalPosition] = useState({ top: 0, left: 0, position: 'bottom' as 'top' | 'bottom' });
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    // Calculate modal position based on button location and available space
+    useEffect(() => {
+        if (isOpen && buttonRef.current) {
+            const buttonRect = buttonRef.current.getBoundingClientRect();
+            const modalHeight = 280; // More compact height
+            const modalWidth = 280;
+
+            // Try to position below first
+            const spaceBelow = window.innerHeight - buttonRect.bottom;
+            const spaceAbove = buttonRect.top;
+
+            let top = buttonRect.bottom + 4; // Default: below
+            let left = buttonRect.left;
+            let position: 'top' | 'bottom' = 'bottom';
+
+            // If not enough space below but enough above, position above
+            if (spaceBelow < modalHeight && spaceAbove >= modalHeight) {
+                top = buttonRect.top - modalHeight - 4;
+                position = 'top';
+            }
+
+            // Adjust horizontal position to stay within viewport
+            if (left + modalWidth > window.innerWidth) {
+                left = window.innerWidth - modalWidth - 8;
+            }
+            if (left < 8) {
+                left = 8;
+            }
+
+            setModalPosition({ top, left, position });
+        }
+    }, [isOpen]);
 
     const handleSelect = (date: Date | undefined) => {
         setSelectedDate(date);
@@ -43,6 +80,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     return (
         <div className={`relative ${className}`}>
             <button
+                ref={buttonRef}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 disabled={disabled}
@@ -60,8 +98,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <CalendarIcon size={16} className="text-gray-400" />
             </button>
 
-            {isOpen && (
-                <div className="absolute z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
+            {isOpen && createPortal(
+                <div
+                    ref={modalRef}
+                    className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3"
+                    style={{
+                        top: modalPosition.top,
+                        left: modalPosition.left,
+                        position: 'fixed'
+                    }}
+                >
                     <DayPicker
                         mode="single"
                         selected={selectedDate}
@@ -69,11 +115,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                         className="text-sm"
                         classNames={{
                             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                            month: "space-y-4",
-                            caption: "flex justify-between pt-1 relative items-center",
+                            month: "space-y-2", // Reduced spacing
+                            caption: "flex justify-center pt-2 relative items-center", // Center the month/year
                             caption_label: "text-sm font-medium text-gray-900 dark:text-gray-100",
-                            nav: "space-x-1 flex items-center",
-                            nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-gray-900 dark:text-gray-100",
+                            nav: "absolute top-2 right-2 space-x-1 flex items-center", // Position nav at top-right
+                            nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-gray-900 dark:text-gray-100", // Smaller buttons
                             nav_button_previous: "",
                             nav_button_next: "",
                             table: "w-full border-collapse space-y-1",
@@ -90,7 +136,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             day_hidden: "invisible",
                         }}
                     />
-                    <div className="flex justify-end mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-end mt-2 pt-2 border-t border-gray-200 dark:border-gray-700"> {/* Reduced margin */}
                         <button
                             onClick={() => setIsOpen(false)}
                             className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -98,14 +144,16 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             Cancel
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {isOpen && (
+            {isOpen && createPortal(
                 <div
                     className="fixed inset-0 z-40"
                     onClick={() => setIsOpen(false)}
-                />
+                />,
+                document.body
             )}
         </div>
     );

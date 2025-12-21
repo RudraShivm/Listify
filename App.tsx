@@ -84,7 +84,9 @@ const MainContentWrapper = () => {
         const root = document.documentElement;
         
         // Update CSS Variables
-        root.style.setProperty('--color-primary', theme.colors.primary);
+        const isDark = settings.theme === 'dark' ||
+                      (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.style.setProperty('--color-primary', isDark ? theme.colors.primaryDark : theme.colors.primary);
         root.style.setProperty('--color-bg-light', theme.colors.bgLight);
         root.style.setProperty('--color-bg-dark', theme.colors.bgDark);
         root.style.setProperty('--color-surface-light', theme.colors.surfaceLight);
