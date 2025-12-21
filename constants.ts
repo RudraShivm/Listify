@@ -10,33 +10,6 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: '4', name: 'Work', color: '#D4A574' },     // Soft Amber
 ];
 
-// Updated model name to gemini-3-flash-preview as per guidelines for task-based selection
-export const GEMINI_MODEL_ROUTINE = 'gemini-3-flash-preview';
-
-export const MOCK_USER = {
-  name: "Student User",
-  email: "student@university.edu",
-  avatar: "https://picsum.photos/200"
-};
-
-export const ROUTINE_PROMPT = `
-Analyze this image of a schedule or timetable. 
-Extract the routine information into a structured JSON format.
-
-CRITICAL RULES:
-1. Return ONLY valid JSON.
-2. 'startTime' and 'endTime' should be in 12-hour format with AM/PM (e.g., "09:00 AM", "01:30 PM").
-3. If a time range is given (e.g., 9-10am), set both startTime and endTime.
-4. 'dayOfWeek': 0=Sunday, 1=Monday, ..., 6=Saturday.
-
-JSON Structure:
-{
-  "events": [
-    { "title": "Math", "dayOfWeek": 1, "startTime": "09:00 AM", "endTime": "10:00 AM" }
-  ]
-}
-`;
-
 export interface AppTheme {
   id: string;
   name: string;

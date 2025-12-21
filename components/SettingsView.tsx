@@ -7,7 +7,7 @@ import { NAV_ITEMS } from './Sidebar';
 import { THEMES } from '../constants';
 
 export const SettingsView = () => {
-    const { settings, setSettings, exportData, importBackup, clearData } = useStore();
+    const { settings, setSettings, exportData, importBackup, clearData, user, isSyncing } = useStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
@@ -351,17 +351,26 @@ export const SettingsView = () => {
                     </div>
                     
                     <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-                        <button 
-                            type="button"
-                            onClick={clearData}
-                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors border border-red-200 dark:border-red-900/30"
-                        >
-                            <Trash2 size={20} />
-                            <span className="font-semibold text-lg">Clear All Data</span>
-                        </button>
-                        <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
-                            <AlertCircle size={12}/> Permanently delete all events, notes, and settings.
-                        </p>
+                        {/* Clear All Data - deletes from Supabase */}
+                        {user && (
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={clearData}
+                                    disabled={isSyncing}
+                                    className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Trash2 size={20} />
+                                    <span className="font-semibold text-lg">
+                                        {isSyncing ? 'Deleting...' : 'Clear All Account Data'}
+                                    </span>
+                                </button>
+                                <p className="text-center text-xs text-red-400 mt-2 flex items-center justify-center gap-1">
+                                    <AlertCircle size={12}/>
+                                    Permanently delete all account data from our servers.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

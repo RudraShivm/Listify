@@ -4,10 +4,12 @@ import { analyzeRoutineImage } from '../services/geminiService';
 import { Upload, Loader2, Plus, Trash2, Clock, X, Check, AlertCircle, Calendar as CalendarIcon, Save, Edit2, ChevronLeft, ArrowRight } from 'lucide-react';
 import { Routine, RoutineBreakpoint } from '../types';
 import { format } from 'date-fns';
+import { supabase } from '../services/supabaseClient';
+import { DatePicker } from './DatePicker';
 
 export const RoutineBuilder = () => {
     const { addRoutine, updateRoutine, deleteRoutine, routines, settings, showToast, searchQuery } = useStore();
-    
+
     // View State
     const [view, setView] = useState<'list' | 'editor'>('list');
     const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
@@ -19,17 +21,17 @@ export const RoutineBuilder = () => {
     const [mode, setMode] = useState<'manual' | 'ai'>('ai');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    
+
     const [routineName, setRoutineName] = useState('');
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [endDate, setEndDate] = useState(format(new Date(new Date().setMonth(new Date().getMonth() + 4)), 'yyyy-MM-dd'));
     const [createHolidayEvents, setCreateHolidayEvents] = useState(true);
-    
+
     const [eventsTemplate, setEventsTemplate] = useState<any[]>([]);
     const [breakpoints, setBreakpoints] = useState<RoutineBreakpoint[]>([]);
-    
+
     // UI State for forms
-    const [showEventForm, setShowEventForm] = useState<{day: number} | null>(null);
+    const [showEventForm, setShowEventForm] = useState<{ day: number } | null>(null);
     const [newEventTitle, setNewEventTitle] = useState('');
     const [newEventTime, setNewEventTime] = useState('09:00');
     const [newEventEndTime, setNewEventEndTime] = useState('');
@@ -67,27 +69,28 @@ export const RoutineBuilder = () => {
         setErrorMsg(null);
         setEditingRoutineId(null);
     };
-
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setErrorMsg(null);
-        if (!process.env.API_KEY) {
-            setErrorMsg("Gemini API Key is missing in environment variables.");
-            showToast("Gemini API Key is missing", "error");
-            return;
-        }
 
         setIsAnalyzing(true);
         try {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onloadend = async () => {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    setErrorMsg("You are not logged in.");
+                    showToast("You are not logged in.", "error");
+                    return;
+                }
+                const accessToken = session.access_token;
                 const base64data = reader.result?.toString().split(',')[1];
                 if (base64data) {
                     try {
-                        const extracted = await analyzeRoutineImage(base64data, file.type);
+                        const extracted = await analyzeRoutineImage(base64data, file.type, accessToken);
                         const withIds = extracted.map(e => ({ ...e, id: crypto.randomUUID() }));
                         setEventsTemplate(withIds);
                         showToast('Schedule analyzed successfully', 'success');
@@ -108,7 +111,7 @@ export const RoutineBuilder = () => {
         if (!routineName.trim()) return showToast("Routine name is required", 'error');
         if (eventsTemplate.length === 0) return showToast("Please add at least one event to the routine", 'error');
         if (!startDate) return showToast("Start date is required", 'error');
-        
+
         const routineData: Routine = {
             id: editingRoutineId || crypto.randomUUID(),
             name: routineName,
@@ -118,13 +121,13 @@ export const RoutineBuilder = () => {
             eventsTemplate: eventsTemplate,
             createHolidayEvents: createHolidayEvents
         };
-        
+
         if (editingRoutineId) {
             updateRoutine(routineData);
         } else {
             addRoutine(routineData);
         }
-        
+
         resetForm();
         setView('list');
     };
@@ -192,10 +195,10 @@ export const RoutineBuilder = () => {
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => setEditingRoutineId(routine.id)} className="p-2 text-gray-400 hover:text-primary hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                                        <Edit2 size={18}/>
+                                        <Edit2 size={18} />
                                     </button>
                                     <button onClick={() => deleteRoutine(routine.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded">
-                                        <Trash2 size={18}/>
+                                        <Trash2 size={18} />
                                     </button>
                                 </div>
                             </div>
@@ -223,11 +226,11 @@ export const RoutineBuilder = () => {
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-8 h-full overflow-y-auto pb-20">
             <button onClick={() => setView('list')} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-primary">
-                <ChevronLeft size={20}/> Back to Routines
+                <ChevronLeft size={20} /> Back to Routines
             </button>
-            
+
             <h2 className="text-2xl font-semibold mb-6 text-text-primary dark:text-text-darkPrimary">{editingRoutineId ? 'Edit Routine' : 'New Routine'}</h2>
-            
+
             <div className="flex gap-4 mb-8">
                 <button onClick={() => setMode('ai')} className={`px-4 py-2 rounded-lg font-medium ${mode === 'ai' ? 'bg-primary text-white' : 'bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700'}`}>AI Scan</button>
                 <button onClick={() => setMode('manual')} className={`px-4 py-2 rounded-lg font-medium ${mode === 'manual' ? 'bg-primary text-white' : 'bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700'}`}>Manual</button>
@@ -242,11 +245,11 @@ export const RoutineBuilder = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500 mb-2">Start Date <span className="text-red-500">*</span></label>
-                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none" />
+                        <DatePicker value={startDate} onChange={setStartDate} placeholder="Select start date" className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500 mb-2">End Date</label>
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none" />
+                        <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none" />
                     </div>
                 </div>
 
@@ -255,38 +258,38 @@ export const RoutineBuilder = () => {
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-semibold">Holidays & Breaks</h3>
                         <label className="flex items-center gap-2 cursor-pointer text-sm">
-                            <input 
-                                type="checkbox" 
-                                checked={createHolidayEvents} 
-                                onChange={e => setCreateHolidayEvents(e.target.checked)} 
+                            <input
+                                type="checkbox"
+                                checked={createHolidayEvents}
+                                onChange={e => setCreateHolidayEvents(e.target.checked)}
                                 className="rounded text-primary focus:ring-primary"
                             />
                             Create calendar events for these holidays
                         </label>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-4">
                         {breakpoints.map(bp => (
                             <div key={bp.id} className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 px-3 py-1.5 rounded-lg text-sm border border-red-100 dark:border-red-900/30">
                                 <span>{bp.name} ({bp.startDate} to {bp.endDate})</span>
-                                <button onClick={() => setBreakpoints(breakpoints.filter(b => b.id !== bp.id))}><X size={14}/></button>
+                                <button onClick={() => setBreakpoints(breakpoints.filter(b => b.id !== bp.id))}><X size={14} /></button>
                             </div>
                         ))}
                     </div>
                     <div className="flex flex-col md:flex-row gap-3 items-end bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl">
                         <div className="flex-1 w-full">
                             <label className="text-xs text-gray-500 mb-1 block">Name</label>
-                            <input type="text" value={newHolidayName} onChange={e => setNewHolidayName(e.target.value)} className="w-full p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"/>
+                            <input type="text" value={newHolidayName} onChange={e => setNewHolidayName(e.target.value)} className="w-full p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
                         </div>
                         <div>
                             <label className="text-xs text-gray-500 mb-1 block">Start</label>
-                            <input type="date" value={newHolidayStart} onChange={e => setNewHolidayStart(e.target.value)} className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"/>
+                            <DatePicker value={newHolidayStart} onChange={setNewHolidayStart} placeholder="Start date" className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
                         </div>
                         <div>
                             <label className="text-xs text-gray-500 mb-1 block">End</label>
-                            <input type="date" value={newHolidayEnd} onChange={e => setNewHolidayEnd(e.target.value)} className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"/>
+                            <DatePicker value={newHolidayEnd} onChange={setNewHolidayEnd} placeholder="End date" className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
                         </div>
-                        <button onClick={confirmAddHoliday} className="p-2 bg-primary text-white rounded hover:bg-primary-dark"><Plus size={20}/></button>
+                        <button onClick={confirmAddHoliday} className="p-2 bg-primary text-white rounded hover:bg-primary-dark"><Plus size={20} /></button>
                     </div>
                 </div>
 
@@ -306,7 +309,7 @@ export const RoutineBuilder = () => {
                                     <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                                 </>
                             )}
-                            {errorMsg && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2"><AlertCircle size={16}/>{errorMsg}</div>}
+                            {errorMsg && <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2"><AlertCircle size={16} />{errorMsg}</div>}
                         </div>
                     </div>
                 )}
@@ -321,19 +324,19 @@ export const RoutineBuilder = () => {
                                 <div key={dayName} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
                                     <div className="flex justify-between items-center mb-3">
                                         <span className="font-medium text-primary">{dayName}</span>
-                                        <button onClick={() => setShowEventForm({ day: index })} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500"><Plus size={16}/></button>
+                                        <button onClick={() => setShowEventForm({ day: index })} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500"><Plus size={16} /></button>
                                     </div>
-                                    
+
                                     {showEventForm?.day === index && (
                                         <div className="mb-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-primary/30 shadow-sm space-y-2">
-                                            <input autoFocus type="text" placeholder="Title" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} className="w-full p-1.5 text-sm bg-gray-50 dark:bg-gray-900 rounded border-none focus:ring-1 focus:ring-primary"/>
+                                            <input autoFocus type="text" placeholder="Title" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} className="w-full p-1.5 text-sm bg-gray-50 dark:bg-gray-900 rounded border-none focus:ring-1 focus:ring-primary" />
                                             <div className="flex gap-2">
-                                                <input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} className="w-1/2 p-1.5 text-xs bg-gray-50 dark:bg-gray-900 rounded"/>
-                                                <input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} className="w-1/2 p-1.5 text-xs bg-gray-50 dark:bg-gray-900 rounded"/>
+                                                <input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} className="w-1/2 p-1.5 text-xs bg-gray-50 dark:bg-gray-900 rounded" />
+                                                <input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} className="w-1/2 p-1.5 text-xs bg-gray-50 dark:bg-gray-900 rounded" />
                                             </div>
                                             <div className="flex justify-end gap-2 mt-1">
-                                                <button onClick={() => setShowEventForm(null)} className="p-1 text-gray-400"><X size={14}/></button>
-                                                <button onClick={confirmAddEvent} className="p-1 text-primary"><Check size={14}/></button>
+                                                <button onClick={() => setShowEventForm(null)} className="p-1 text-gray-400"><X size={14} /></button>
+                                                <button onClick={confirmAddEvent} className="p-1 text-primary"><Check size={14} /></button>
                                             </div>
                                         </div>
                                     )}
@@ -341,31 +344,31 @@ export const RoutineBuilder = () => {
                                     <div className="space-y-2">
                                         {dayEvents.map((ev) => (
                                             <div key={ev.id} className="bg-white dark:bg-gray-800 p-2 rounded shadow-sm text-sm border border-gray-100 dark:border-gray-700 group space-y-1">
-                                                <input 
-                                                    type="text" 
-                                                    value={ev.title} 
+                                                <input
+                                                    type="text"
+                                                    value={ev.title}
                                                     onChange={(e) => updateTemplateEvent(ev.id, 'title', e.target.value)}
                                                     className="w-full bg-transparent font-medium border-none p-0 focus:ring-0 text-sm"
                                                 />
                                                 <div className="flex items-center justify-between text-xs text-gray-500">
                                                     <div className="flex items-center gap-1">
-                                                        <Clock size={10}/>
-                                                        <input 
-                                                            type="text" 
+                                                        <Clock size={10} />
+                                                        <input
+                                                            type="text"
                                                             value={ev.startTime}
-                                                            onChange={(e) => updateTemplateEvent(ev.id, 'startTime', e.target.value)} 
+                                                            onChange={(e) => updateTemplateEvent(ev.id, 'startTime', e.target.value)}
                                                             className="w-12 bg-transparent p-0 border-none text-xs"
                                                         />
                                                         -
-                                                        <input 
-                                                            type="text" 
-                                                            value={ev.endTime || ''} 
-                                                            onChange={(e) => updateTemplateEvent(ev.id, 'endTime', e.target.value)} 
+                                                        <input
+                                                            type="text"
+                                                            value={ev.endTime || ''}
+                                                            onChange={(e) => updateTemplateEvent(ev.id, 'endTime', e.target.value)}
                                                             placeholder="End"
                                                             className="w-12 bg-transparent p-0 border-none text-xs"
                                                         />
                                                     </div>
-                                                    <button onClick={() => deleteTemplateEvent(ev.id)} className="opacity-0 group-hover:opacity-100 text-red-400 p-1"><Trash2 size={12}/></button>
+                                                    <button onClick={() => deleteTemplateEvent(ev.id)} className="opacity-0 group-hover:opacity-100 text-red-400 p-1"><Trash2 size={12} /></button>
                                                 </div>
                                             </div>
                                         ))}
@@ -377,7 +380,7 @@ export const RoutineBuilder = () => {
                 </div>
 
                 <div className="flex justify-end pt-6">
-                    <button onClick={handleSaveRoutine} className="bg-primary text-white px-8 py-3 rounded-xl font-medium flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20"><Save size={20}/> {editingRoutineId ? 'Update Routine' : 'Create Routine'}</button>
+                    <button onClick={handleSaveRoutine} className="bg-primary text-white px-8 py-3 rounded-xl font-medium flex items-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20"><Save size={20} /> {editingRoutineId ? 'Update Routine' : 'Create Routine'}</button>
                 </div>
             </div>
         </div>

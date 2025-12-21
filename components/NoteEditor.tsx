@@ -392,7 +392,7 @@ export const NotesList = () => {
                              {note.content.replace(/<[^>]+>/g, ' ')}
                          </div>
                          <div className="mt-4 text-xs text-gray-400 flex justify-between items-center">
-                             <span>{format(new Date(note.updatedAt), 'MMM d, yyyy')}</span>
+                             <span>{format(new Date(note.updatedAt), 'dd/MM/yyyy')}</span>
                              <div className="flex gap-1">
                                  {note.tags.map(tId => {
                                      const tag = tags.find(t => t.id === tId);

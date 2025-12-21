@@ -52,6 +52,7 @@ interface AppContextType extends AppState {
   exportData: () => void;
   importBackup: (jsonData: string) => void;
   clearData: () => void;
+  clearLocalData: () => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
   signOut: () => Promise<void>;
@@ -75,8 +76,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     defaultEventDuration: 60,
     createHolidayEvents: true,
     theme: 'system',
-    themeId: 'academic', 
-    startOfWeek: 'monday',
+    themeId: 'academic',
+    startOfWeek: 'saturday',
     timeFormat: '12h',
     defaultView: ViewType.NOTES,
     focusMode: false,
@@ -181,44 +182,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // --- Standard Logic ---
   const setCurrentView = (view: ViewType) => {
-      if (view !== currentView) {
-          setViewHistory(prev => [...prev, currentView]);
-          setCurrentViewState(view);
-          if (view !== ViewType.EVENT_EDIT && view !== ViewType.NOTES) setSearchQuery('');
-      }
+    if (view !== currentView) {
+      setViewHistory(prev => [...prev, currentView]);
+      setCurrentViewState(view);
+      if (view !== ViewType.EVENT_EDIT && view !== ViewType.NOTES) setSearchQuery('');
+    }
   };
 
   const goBack = () => {
-      if (viewHistory.length > 0) {
-          const newHistory = [...viewHistory];
-          const prev = newHistory.pop();
-          setViewHistory(newHistory);
-          if (prev) setCurrentViewState(prev);
-      } else {
-          setCurrentViewState(settings.defaultView);
-      }
+    if (viewHistory.length > 0) {
+      const newHistory = [...viewHistory];
+      const prev = newHistory.pop();
+      setViewHistory(newHistory);
+      if (prev) setCurrentViewState(prev);
+    } else {
+      setCurrentViewState(settings.defaultView);
+    }
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-      const id = crypto.randomUUID();
-      setToasts(prev => [...prev, { id, message, type }]);
-      setTimeout(() => removeToast(id), 3000);
+    const id = crypto.randomUUID();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 3000);
   };
 
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
   const addEvent = (event: Event) => setEvents(prev => [...prev, event]);
   const addEvents = (newEvents: Event[]) => setEvents(prev => [...prev, ...newEvents]);
-  
+
   const updateEvent = (updatedEvent: Event, mode: 'single' | 'future' | 'all' = 'single') => {
     if (updatedEvent.linkedNoteIds) {
-        setNotes(prev => prev.map(n => {
-            const isLinked = updatedEvent.linkedNoteIds?.includes(n.id);
-            const hasRef = n.referencedEventIds.includes(updatedEvent.id);
-            if (isLinked && !hasRef) return { ...n, referencedEventIds: [...n.referencedEventIds, updatedEvent.id] };
-            if (!isLinked && hasRef) return { ...n, referencedEventIds: n.referencedEventIds.filter(id => id !== updatedEvent.id) };
-            return n;
-        }));
+      setNotes(prev => prev.map(n => {
+        const isLinked = updatedEvent.linkedNoteIds?.includes(n.id);
+        const hasRef = n.referencedEventIds.includes(updatedEvent.id);
+        if (isLinked && !hasRef) return { ...n, referencedEventIds: [...n.referencedEventIds, updatedEvent.id] };
+        if (!isLinked && hasRef) return { ...n, referencedEventIds: n.referencedEventIds.filter(id => id !== updatedEvent.id) };
+        return n;
+      }));
     }
     setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
   };
@@ -256,7 +257,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const reorderTodos = (date: string, newItems: TodoItem[]) => {
-      setDailyTodos(prev => prev.map(d => d.date === date ? { ...d, items: newItems } : d));
+    setDailyTodos(prev => prev.map(d => d.date === date ? { ...d, items: newItems } : d));
   };
 
   const exportData = () => {
@@ -269,25 +270,68 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const importBackup = (jsonData: string) => {
-      try {
-          const data = JSON.parse(jsonData);
-          setEvents(data.events || []);
-          setNotes(data.notes || []);
-          setSettings(data.settings || settings);
-          showToast('Data imported', 'success');
-      } catch (e) {
-          showToast('Import failed', 'error');
-      }
+    try {
+      const data = JSON.parse(jsonData);
+      setEvents(data.events || []);
+      setNotes(data.notes || []);
+      setSettings(data.settings || settings);
+      showToast('Data imported', 'success');
+    } catch (e) {
+      showToast('Import failed', 'error');
+    }
+  };
+
+  // Function to clear only app-specific localStorage keys (not auth session)
+  const clearLocalDataOnly = () => {
+    const appKeys = ['events', 'notes', 'routines', 'dailyTodos', 'tags', 'settings'];
+    appKeys.forEach(key => localStorage.removeItem(key));
+    clearLocalState();
+    showToast('Local data cleared successfully', 'success');
   };
 
   const clearData = async () => {
-    if (window.confirm("Delete all data?")) {
-        clearLocalState();
-        localStorage.clear();
-        if (user && isSupabaseConfigured && supabase) {
-          await supabase.from('user_data').delete().eq('user_id', user.id);
+    if (!user) {
+      // If not logged in, just clear local data
+      if (window.confirm("This will permanently delete all your local data. Are you sure?")) {
+        clearLocalDataOnly();
+      }
+      return;
+    }
+
+    // If logged in, clear account data from Supabase
+    if (window.confirm("This will permanently delete ALL your account data from our servers, including events, notes, routines, todos, and settings. This action cannot be undone. Are you sure?")) {
+      try {
+        setIsSyncing(true);
+        showToast('Deleting account data...', 'info');
+
+        // First delete from Supabase
+        const { error } = await supabase
+          .from('user_data')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error deleting user data:', error);
+          showToast('Error deleting account data. Please try again.', 'error');
+          return;
         }
-        window.location.reload();
+
+        // Then clear local data (but not auth session)
+        clearLocalDataOnly();
+
+        showToast('All account data deleted successfully', 'success');
+
+        // Small delay to show the success message before reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
+      } catch (error) {
+        console.error('Error during data clearing:', error);
+        showToast('Error clearing data. Please try again.', 'error');
+      } finally {
+        setIsSyncing(false);
+      }
     }
   };
 
@@ -306,7 +350,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addNote, updateNote, deleteNote,
       addRoutine, updateRoutine: (r) => setRoutines(routines.map(prev => prev.id === r.id ? r : prev)), deleteRoutine,
       getTodosForDate, getArchivedTodos: () => dailyTodos, getReferencingTodos: (id) => [], addTodo, toggleTodo, reorderTodos,
-      exportData, importBackup, clearData, showToast, removeToast, signOut
+      exportData, importBackup, clearData, clearLocalData: clearLocalDataOnly, showToast, removeToast, signOut
     }}>
       {children}
     </AppContext.Provider>

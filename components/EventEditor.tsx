@@ -3,16 +3,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/Store';
 import { Event, ViewType, Tag, RoutineBreakpoint, Note } from '../types';
 import { format, addDays, isBefore, addMinutes, differenceInDays } from 'date-fns';
-import { 
-    X, Clock, Calendar as CalendarIcon, Bell, Repeat, 
-    Tag as TagIcon, Link, AlertTriangle, 
+import {
+    X, Clock, Calendar as CalendarIcon, Bell, Repeat,
+    Tag as TagIcon, Link, AlertTriangle,
     ChevronLeft, Trash2, Plus, FileText, Search, ArrowRight, Loader2, CheckSquare
 } from 'lucide-react';
+import { DatePicker } from './DatePicker';
 import { generateHolidayEvents, generateEventsFromRecurrence } from '../utils/appUtils';
 
 export const EventEditor = () => {
-    const { 
-        selectedEventId, events, addEvent, addEvents, updateEvent, 
+    const {
+        selectedEventId, events, addEvent, addEvents, updateEvent,
         goBack, tags, addTag, deleteEvent, settings, showToast,
         notes, addNote, setSelectedNoteId, setCurrentView,
         draftEvent, setDraftEvent, setSelectedEventId, getReferencingTodos
@@ -30,12 +31,12 @@ export const EventEditor = () => {
     const [endTime, setEndTime] = useState('10:00');
     const [isAllDay, setIsAllDay] = useState(false);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-    
+
     // Recurrence State
     const [recurrence, setRecurrence] = useState<Event['recurrence']>('none');
     const [isForever, setIsForever] = useState(true);
     const [recurrenceEnd, setRecurrenceEnd] = useState('');
-    
+
     // Breakpoints State
     const [breakpoints, setBreakpoints] = useState<RoutineBreakpoint[]>([]);
     const [createEventsForBreakpoints, setCreateEventsForBreakpoints] = useState(settings.createHolidayEvents);
@@ -61,7 +62,7 @@ export const EventEditor = () => {
             const start = new Date(existingEvent.startTime);
             setStartDate(format(start, 'yyyy-MM-dd'));
             setStartTime(format(start, 'HH:mm'));
-            
+
             if (existingEvent.endTime) {
                 setHasEndDate(true);
                 const end = new Date(existingEvent.endTime);
@@ -72,25 +73,25 @@ export const EventEditor = () => {
             setIsAllDay(existingEvent.isAllDay);
             setSelectedTags(existingEvent.tags);
             setRecurrence(existingEvent.recurrence || 'none');
-            
+
             if (existingEvent.recurrenceEnd) {
                 setIsForever(false);
                 setRecurrenceEnd(format(new Date(existingEvent.recurrenceEnd), 'yyyy-MM-dd'));
             } else {
                 setIsForever(true);
             }
-            
+
             setAlarmOffset(existingEvent.alarmOffset ?? -1);
             setBreakpoints(existingEvent.breakpoints || []);
             setLinkedNoteIds(existingEvent.linkedNoteIds || []);
         } else if (draftEvent && !selectedEventId) {
             setTitle(draftEvent.title || '');
-            if(draftEvent.startTime) {
+            if (draftEvent.startTime) {
                 const s = new Date(draftEvent.startTime);
                 setStartDate(format(s, 'yyyy-MM-dd'));
                 setStartTime(format(s, 'HH:mm'));
             }
-            if(draftEvent.endTime) {
+            if (draftEvent.endTime) {
                 setHasEndDate(true);
                 const e = new Date(draftEvent.endTime);
                 setEndDate(format(e, 'yyyy-MM-dd'));
@@ -166,7 +167,7 @@ export const EventEditor = () => {
             // First, remove old series events to prevent duplicates.
             // We use deleteEvent logic in store but adapted for bulk.
             if (existingEvent?.recurringEventId) {
-                deleteEvent(existingEvent.id, 'all'); 
+                deleteEvent(existingEvent.id, 'all');
             } else if (existingEvent) {
                 // Was single, now recurring
                 deleteEvent(existingEvent.id, 'single');
@@ -178,7 +179,7 @@ export const EventEditor = () => {
 
             // Generate new series
             const newSeries = generateEventsFromRecurrence(baseEvent);
-            
+
             // Also generate holidays if requested
             if (breakpoints.length > 0 && createEventsForBreakpoints) {
                 const holidays = generateHolidayEvents(breakpoints);
@@ -186,7 +187,7 @@ export const EventEditor = () => {
             }
 
             addEvents(newSeries);
-            
+
             // Ensure we keep editing the "master" or the first instance
             // If we deleted the old event, we need to make sure we don't lose focus
             if (!selectedEventId) {
@@ -236,12 +237,12 @@ export const EventEditor = () => {
 
     return (
         <div className="max-w-3xl mx-auto p-4 md:p-8 h-full overflow-y-auto">
-             <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8">
                 <button onClick={() => { setDraftEvent(null); goBack(); }} className="flex items-center gap-2 text-gray-500 hover:text-primary">
                     <ChevronLeft size={20} /> Back
                 </button>
                 <div className="flex gap-2 items-center">
-                    {isSaving && <span className="text-xs text-gray-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin"/> Saving...</span>}
+                    {isSaving && <span className="text-xs text-gray-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Saving...</span>}
                     {existingEvent && (
                         <button onClick={() => { deleteEvent(existingEvent.id, 'all'); goBack(); }} className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                             <Trash2 size={20} />
@@ -262,8 +263,8 @@ export const EventEditor = () => {
                     <div className="space-y-4">
                         <label className="block text-sm font-medium text-gray-500">Starts</label>
                         <div className="flex gap-3">
-                             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />
-                             {!isAllDay && <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-32 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />}
+                            <DatePicker value={startDate} onChange={setStartDate} placeholder="Start date" className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />
+                            {!isAllDay && <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-32 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />}
                         </div>
                     </div>
 
@@ -274,8 +275,8 @@ export const EventEditor = () => {
                         </div>
                         {hasEndDate ? (
                             <div className="flex gap-3 animate-in fade-in">
-                                 <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />
-                                 {!isAllDay && <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-32 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />}
+                                <DatePicker value={endDate} onChange={setEndDate} placeholder="End date" className="w-full p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />
+                                {!isAllDay && <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-32 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 border-none text-sm" />}
                             </div>
                         ) : (
                             <div className="p-2.5 text-sm text-gray-400 italic">Defaults to {settings.defaultEventDuration} mins</div>
@@ -285,10 +286,10 @@ export const EventEditor = () => {
 
                 {/* Toggles */}
                 <div className="flex gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-                     <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={isAllDay} onChange={e => setIsAllDay(e.target.checked)} className="rounded text-primary focus:ring-primary"/>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={isAllDay} onChange={e => setIsAllDay(e.target.checked)} className="rounded text-primary focus:ring-primary" />
                         <span className="text-sm">All Day Event</span>
-                     </label>
+                    </label>
                 </div>
 
                 {/* Recurrence Section */}
@@ -297,12 +298,12 @@ export const EventEditor = () => {
                     <div className="flex flex-col gap-4">
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {(['none', 'daily', 'weekly', 'monthly', 'yearly'] as const).map(opt => (
-                                <button 
+                                <button
                                     key={opt}
                                     onClick={() => setRecurrence(opt)}
                                     className={`px-3 py-1.5 rounded-full text-sm capitalize border transition-colors whitespace-nowrap
-                                        ${recurrence === opt 
-                                            ? 'bg-primary text-white border-primary' 
+                                        ${recurrence === opt
+                                            ? 'bg-primary text-white border-primary'
                                             : 'bg-transparent text-gray-500 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                                         }`}
                                 >
@@ -310,20 +311,20 @@ export const EventEditor = () => {
                                 </button>
                             ))}
                         </div>
-                        
+
                         {recurrence !== 'none' && (
                             <div className="space-y-4 animate-in fade-in">
                                 <div className="flex items-center gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input type="radio" checked={isForever} onChange={() => setIsForever(true)} className="text-primary focus:ring-primary"/>
+                                        <input type="radio" checked={isForever} onChange={() => setIsForever(true)} className="text-primary focus:ring-primary" />
                                         Forever
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer text-sm">
-                                        <input type="radio" checked={!isForever} onChange={() => setIsForever(false)} className="text-primary focus:ring-primary"/>
+                                        <input type="radio" checked={!isForever} onChange={() => setIsForever(false)} className="text-primary focus:ring-primary" />
                                         Until
                                     </label>
                                     {!isForever && (
-                                        <input type="date" value={recurrenceEnd} onChange={e => setRecurrenceEnd(e.target.value)} className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border-none text-sm"/>
+                                        <DatePicker value={recurrenceEnd} onChange={setRecurrenceEnd} placeholder="End date" className="p-1.5 rounded bg-gray-50 dark:bg-gray-800 border-none text-sm" />
                                     )}
                                 </div>
 
@@ -332,10 +333,10 @@ export const EventEditor = () => {
                                     <div className="flex justify-between items-center mb-3">
                                         <span className="text-sm font-medium">Holiday Breaks</span>
                                         <label className="flex items-center gap-2 cursor-pointer text-xs">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={createEventsForBreakpoints} 
-                                                onChange={e => setCreateEventsForBreakpoints(e.target.checked)} 
+                                            <input
+                                                type="checkbox"
+                                                checked={createEventsForBreakpoints}
+                                                onChange={e => setCreateEventsForBreakpoints(e.target.checked)}
                                                 className="rounded text-primary focus:ring-primary"
                                             />
                                             Create events for holidays
@@ -345,14 +346,14 @@ export const EventEditor = () => {
                                         {breakpoints.map(bp => (
                                             <div key={bp.id} className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 px-2 py-1 rounded text-xs">
                                                 <span>{bp.name}: {bp.startDate}</span>
-                                                <button onClick={() => setBreakpoints(breakpoints.filter(b => b.id !== bp.id))}><X size={12}/></button>
+                                                <button onClick={() => setBreakpoints(breakpoints.filter(b => b.id !== bp.id))}><X size={12} /></button>
                                             </div>
                                         ))}
                                     </div>
                                     <div className="flex flex-col md:flex-row gap-2 items-end">
-                                        <input type="text" placeholder="Name" value={newBpName} onChange={e => setNewBpName(e.target.value)} className="w-full p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none"/>
-                                        <input type="date" value={newBpStart} onChange={e => setNewBpStart(e.target.value)} className="p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none"/>
-                                        <input type="date" value={newBpEnd} onChange={e => setNewBpEnd(e.target.value)} className="p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none"/>
+                                        <input type="text" placeholder="Name" value={newBpName} onChange={e => setNewBpName(e.target.value)} className="w-full p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none" />
+                                        <DatePicker value={newBpStart} onChange={setNewBpStart} placeholder="Start" className="p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none" />
+                                        <DatePicker value={newBpEnd} onChange={setNewBpEnd} placeholder="End" className="p-1.5 text-xs rounded bg-white dark:bg-gray-800 border-none" />
                                         <button onClick={addBreakpoint} className="p-1.5 bg-primary text-white rounded text-xs">Add</button>
                                     </div>
                                 </div>
@@ -369,45 +370,45 @@ export const EventEditor = () => {
                             const note = notes.find(n => n.id === noteId);
                             if (!note) return null;
                             return (
-                                <div key={noteId} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => {}}>
+                                <div key={noteId} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => { }}>
                                     <div className="flex items-center gap-2 overflow-hidden">
-                                        <FileText size={14} className="text-primary"/>
+                                        <FileText size={14} className="text-primary" />
                                         <span className="text-sm font-medium truncate">{note.title}</span>
                                     </div>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); setLinkedNoteIds(linkedNoteIds.filter(id => id !== noteId)); }} 
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setLinkedNoteIds(linkedNoteIds.filter(id => id !== noteId)); }}
                                         className="text-gray-400 hover:text-red-400 p-1"
                                     >
-                                        <X size={14}/>
+                                        <X size={14} />
                                     </button>
                                 </div>
                             );
                         })}
-                        
+
                         {!showNoteSearch ? (
                             <div className="flex gap-2">
                                 <button onClick={() => setShowNoteSearch(true)} className="text-sm px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-gray-400 hover:text-primary hover:border-primary flex items-center gap-1">
-                                    <Search size={14}/> Attach Existing Note
+                                    <Search size={14} /> Attach Existing Note
                                 </button>
                             </div>
                         ) : (
                             <div className="relative animate-in fade-in">
                                 <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-1 border border-primary/30">
-                                    <Search size={16} className="text-gray-400 ml-2"/>
-                                    <input 
+                                    <Search size={16} className="text-gray-400 ml-2" />
+                                    <input
                                         autoFocus
-                                        type="text" 
-                                        placeholder="Search notes..." 
+                                        type="text"
+                                        placeholder="Search notes..."
                                         className="bg-transparent border-none focus:ring-0 text-sm flex-1"
                                         value={noteSearchQuery}
                                         onChange={e => setNoteSearchQuery(e.target.value)}
                                     />
-                                    <button onClick={() => setShowNoteSearch(false)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"><X size={14}/></button>
+                                    <button onClick={() => setShowNoteSearch(false)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"><X size={14} /></button>
                                 </div>
                                 {noteSearchQuery && (
                                     <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 max-h-40 overflow-y-auto z-10">
                                         {notes.filter(n => n.title.toLowerCase().includes(noteSearchQuery.toLowerCase()) && !linkedNoteIds.includes(n.id)).map(n => (
-                                            <button 
+                                            <button
                                                 key={n.id}
                                                 onClick={() => {
                                                     setLinkedNoteIds([...linkedNoteIds, n.id]);
@@ -428,7 +429,7 @@ export const EventEditor = () => {
 
                 {/* Referencing Todos (Read-Only) */}
                 {referencingTodos.length > 0 && (
-                     <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+                    <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
                         <label className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-3"><CheckSquare size={16} /> Referenced in Tasks</label>
                         <div className="space-y-2">
                             {referencingTodos.map(({ date, item }) => (
@@ -438,7 +439,7 @@ export const EventEditor = () => {
                                 </div>
                             ))}
                         </div>
-                     </div>
+                    </div>
                 )}
 
                 {/* Tags & Alarm */}

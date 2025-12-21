@@ -5,6 +5,7 @@ import { Event } from '../types';
 import { DEFAULT_TAGS } from '../constants';
 import { format } from 'date-fns';
 import { useStore } from '../context/Store';
+import { DatePicker } from './DatePicker';
 
 interface EventModalProps {
     isOpen: boolean;
@@ -31,7 +32,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
     const [showRecurrencePrompt, setShowRecurrencePrompt] = useState(false);
 
     // Find notes referencing this event
-    const referencingNotes = existingEvent 
+    const referencingNotes = existingEvent
         ? notes.filter(n => n.referencedEventIds?.includes(existingEvent.id))
         : [];
 
@@ -76,12 +77,12 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="bg-surface-light dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
-                
+
                 {/* Recurrence Prompt Overlay */}
                 {showRecurrencePrompt ? (
                     <div className="p-6 space-y-4">
                         <div className="flex items-center gap-2 text-primary font-semibold">
-                            <AlertTriangle size={24}/>
+                            <AlertTriangle size={24} />
                             <h3>Edit Recurring Event</h3>
                         </div>
                         <p className="text-sm text-gray-500">This event is part of a series. How would you like to apply your changes?</p>
@@ -129,18 +130,18 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3">
                                     <CalendarIcon size={18} className="text-gray-400" />
-                                    <input 
-                                        type="date" 
+                                    <DatePicker
                                         value={date}
-                                        onChange={e => setDate(e.target.value)}
+                                        onChange={setDate}
+                                        placeholder="Select date"
                                         className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-2 text-sm flex-1"
                                     />
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Clock size={18} className="text-gray-400" />
                                     <div className="flex gap-2 flex-1">
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             value={time}
                                             onChange={e => setTime(e.target.value)}
                                             className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-2 text-sm flex-1"
@@ -148,8 +149,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                                         {!isAllDay && (
                                             <>
                                                 <span className="self-center text-gray-400">-</span>
-                                                <input 
-                                                    type="time" 
+                                                <input
+                                                    type="time"
                                                     value={endTime}
                                                     onChange={e => setEndTime(e.target.value)}
                                                     placeholder="End"
@@ -160,10 +161,10 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 ml-8">
-                                    <input 
-                                        type="checkbox" 
-                                        id="allDay" 
-                                        checked={isAllDay} 
+                                    <input
+                                        type="checkbox"
+                                        id="allDay"
+                                        checked={isAllDay}
                                         onChange={e => setIsAllDay(e.target.checked)}
                                         className="rounded text-primary focus:ring-primary"
                                     />
@@ -176,8 +177,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                                 {/* Alarm */}
                                 <div className="flex items-center gap-3">
                                     <Bell size={18} className="text-gray-400" />
-                                    <select 
-                                        value={alarmOffset ?? -1} 
+                                    <select
+                                        value={alarmOffset ?? -1}
                                         onChange={e => setAlarmOffset(e.target.value === '-1' ? undefined : Number(e.target.value))}
                                         className="bg-transparent text-sm text-text-primary dark:text-text-darkPrimary focus:outline-none flex-1"
                                     >
@@ -192,8 +193,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                                 {/* Recurrence */}
                                 <div className="flex items-center gap-3">
                                     <Repeat size={18} className="text-gray-400" />
-                                    <select 
-                                        value={recurrence} 
+                                    <select
+                                        value={recurrence}
                                         onChange={e => setRecurrence(e.target.value as any)}
                                         className="bg-transparent text-sm text-text-primary dark:text-text-darkPrimary focus:outline-none flex-1"
                                     >
@@ -219,12 +220,11 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                                                         setSelectedTags([...selectedTags, tag.id]);
                                                     }
                                                 }}
-                                                className={`text-xs px-2 py-1 rounded-full border transition-all ${
-                                                    selectedTags.includes(tag.id)
-                                                        ? 'border-transparent text-white' 
+                                                className={`text-xs px-2 py-1 rounded-full border transition-all ${selectedTags.includes(tag.id)
+                                                        ? 'border-transparent text-white'
                                                         : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-primary'
-                                                }`}
-                                                style={{ 
+                                                    }`}
+                                                style={{
                                                     backgroundColor: selectedTags.includes(tag.id) ? tag.color : 'transparent',
                                                 }}
                                             >
@@ -239,12 +239,12 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                             {referencingNotes.length > 0 && (
                                 <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                                     <h4 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
-                                        <Link size={14}/> Referenced In
+                                        <Link size={14} /> Referenced In
                                     </h4>
                                     <div className="space-y-1">
                                         {referencingNotes.map(note => (
                                             <div key={note.id} className="flex items-center gap-2 text-sm p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                                <FileText size={14} className="text-primary"/>
+                                                <FileText size={14} className="text-primary" />
                                                 <span className="truncate">{note.title}</span>
                                             </div>
                                         ))}
@@ -257,7 +257,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 onClick={handleSaveInit}
                                 className="px-6 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-xl shadow-sm transition-colors"
                             >

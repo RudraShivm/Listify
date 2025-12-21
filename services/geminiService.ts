@@ -1,5 +1,5 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { ROUTINE_PROMPT, GEMINI_MODEL_ROUTINE } from '../constants';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export interface ExtractedRoutineEvent {
   title: string;
@@ -8,57 +8,22 @@ export interface ExtractedRoutineEvent {
   endTime?: string;
 }
 
-export const analyzeRoutineImage = async (base64Image: string, mimeType: string): Promise<ExtractedRoutineEvent[]> => {
-  // Always use a fresh instance to ensure up-to-date API keys as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+export const analyzeRoutineImage = async (
+  base64Image: string,
+  mimeType: string,
+  accessToken: string
+): Promise<ExtractedRoutineEvent[]> => {
   try {
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL_ROUTINE,
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Image,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: ROUTINE_PROMPT,
-          },
-        ],
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            events: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  dayOfWeek: { type: Type.INTEGER, description: "0 for Sunday, 1 for Monday, etc." },
-                  startTime: { type: Type.STRING, description: "HH:MM 24-hour format" },
-                  endTime: { type: Type.STRING, description: "HH:MM 24-hour format, optional" }
-                },
-                required: ["title", "dayOfWeek", "startTime"]
-              }
-            }
-          }
-        }
-      }
+    const res = await fetch(`${BACKEND_URL}/api/gemini/routine-image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base64Image, mimeType, accessToken })
     });
-
-    const text = response.text;
-    if (!text) return [];
-
-    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const json = JSON.parse(jsonString);
-    return json.events || [];
+    if (!res.ok) throw new Error("Backend Gemini request failed");
+    const data = await res.json();
+    return data.events || [];
   } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    throw new Error("Failed to analyze routine image. Please check your API key and image format.");
+    console.error("Gemini Backend Error:", error);
+    throw new Error("Failed to analyze routine image via backend.");
   }
 };

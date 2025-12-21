@@ -4,16 +4,17 @@ import { useStore } from '../context/Store';
 import { format } from 'date-fns';
 import { CheckSquare, Square, Plus, Archive, ChevronLeft, Calendar as CalendarIcon, GripVertical } from 'lucide-react';
 import { TodoItem } from '../types';
+import { DatePicker } from './DatePicker';
 
 export const TodoView = () => {
     const { getTodosForDate, addTodo, toggleTodo, getArchivedTodos, reorderTodos } = useStore();
     const [inputValue, setInputValue] = useState('');
     const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [showArchive, setShowArchive] = useState(false);
-    
+
     // Drag & Drop State
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
-    
+
     const todos = getTodosForDate(selectedDate);
     const isToday = selectedDate === format(new Date(), 'yyyy-MM-dd');
 
@@ -41,13 +42,13 @@ export const TodoView = () => {
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
         if (draggedItemIndex === null || draggedItemIndex === index) return;
-        
+
         // Reorder
         const newTodos = [...todos];
         const draggedItem = newTodos[draggedItemIndex];
         newTodos.splice(draggedItemIndex, 1);
         newTodos.splice(index, 0, draggedItem);
-        
+
         // Update local state is handled via reorderTodos immediately for responsiveness
         // But to avoid flicker we might want local state. 
         // For simplicity with React state updates, we assume fast updates.
@@ -65,20 +66,20 @@ export const TodoView = () => {
                     </button>
                     <h2 className="text-xl font-semibold">Past Todo Lists</h2>
                 </div>
-                
+
                 <div className="space-y-6 overflow-y-auto pb-20">
                     {archives.length === 0 && <div className="text-center text-gray-400 mt-10">No archived lists yet.</div>}
                     {archives.map(list => (
                         <div key={list.date} className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                             <div className="font-medium mb-3 text-primary">{format(new Date(list.date), 'MMMM do, yyyy')}</div>
-                             <div className="space-y-2">
-                                 {list.items.map(item => (
-                                     <div key={item.id} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                         {item.isCompleted ? <CheckSquare size={14}/> : <Square size={14}/>}
-                                         <span className={item.isCompleted ? 'line-through' : ''}>{item.text}</span>
-                                     </div>
-                                 ))}
-                             </div>
+                            <div className="font-medium mb-3 text-primary">{format(new Date(list.date), 'dd/MM/yyyy')}</div>
+                            <div className="space-y-2">
+                                {list.items.map(item => (
+                                    <div key={item.id} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        {item.isCompleted ? <CheckSquare size={14} /> : <Square size={14} />}
+                                        <span className={item.isCompleted ? 'line-through' : ''}>{item.text}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -95,15 +96,15 @@ export const TodoView = () => {
                     </h2>
                     <div className="flex items-center gap-2 text-text-secondary dark:text-text-darkSecondary bg-gray-100 dark:bg-gray-800 p-1.5 rounded-lg w-fit">
                         <CalendarIcon size={16} />
-                        <input 
-                            type="date" 
+                        <DatePicker
                             value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="bg-transparent border-none text-sm focus:outline-none text-text-primary dark:text-text-darkPrimary"
+                            onChange={setSelectedDate}
+                            placeholder="Select date"
+                            className="bg-transparent border-none text-sm focus:outline-none text-text-primary dark:text-text-darkPrimary w-32"
                         />
                     </div>
                 </div>
-                <button 
+                <button
                     onClick={() => setShowArchive(true)}
                     className="p-2 text-gray-400 hover:text-primary transition-colors flex flex-col items-center gap-1 text-xs"
                 >
@@ -114,15 +115,15 @@ export const TodoView = () => {
 
             <div className="flex-1 overflow-y-auto space-y-2 mb-6">
                 {todos.map((todo, index) => (
-                    <div 
+                    <div
                         key={todo.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, index)}
                         onDragEnd={handleDragEnd}
                         onDragOver={(e) => handleDragOver(e, index)}
                         className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-default
-                            ${todo.isCompleted 
-                                ? 'bg-gray-50 dark:bg-white/5 border-transparent opacity-60' 
+                            ${todo.isCompleted
+                                ? 'bg-gray-50 dark:bg-white/5 border-transparent opacity-60'
                                 : 'bg-surface-light dark:bg-surface-dark border-gray-100 dark:border-gray-800 shadow-sm'
                             }
                             ${draggedItemIndex === index ? 'border-primary border-dashed bg-primary/5' : ''}
@@ -132,7 +133,7 @@ export const TodoView = () => {
                             <GripVertical size={16} />
                         </div>
 
-                        <button 
+                        <button
                             onClick={() => toggleTodo(selectedDate, todo.id)}
                             className={`p-1 rounded transition-colors ${todo.isCompleted ? 'text-primary' : 'text-gray-300 hover:text-primary'}`}
                         >
@@ -159,7 +160,7 @@ export const TodoView = () => {
                     placeholder={`Add task for ${isToday ? 'Today' : selectedDate}...`}
                     className="w-full p-4 pr-12 rounded-xl bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-lg"
                 />
-                <button 
+                <button
                     type="submit"
                     className="absolute right-3 top-3 p-1 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                 >

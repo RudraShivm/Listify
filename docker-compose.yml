@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  app:
+  frontend:
     build:
       context: .
       target: dev
@@ -16,3 +16,13 @@ services:
       - CHOKIDAR_USEPOLLING=true # Useful for HMR on some systems
     stdin_open: true
     tty: true
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    working_dir: /app
+    command: npm start
