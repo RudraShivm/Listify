@@ -2,6 +2,10 @@
 // Updated model name to gemini-3-flash-preview as per guidelines for task-based selection
 export const GEMINI_MODEL_ROUTINE = 'gemini-3-flash-preview';
 
+// Moodle API constants
+export const MOODLE_DEFAULT_TIMEOUT = 30000;
+export const MOODLE_DEFAULT_SERVICE = 'moodle_mobile_app';
+
 export const ROUTINE_PROMPT = `
 Analyze this image of a schedule or timetable. 
 Extract the routine information into a structured JSON format.

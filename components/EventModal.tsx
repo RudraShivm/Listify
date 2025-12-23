@@ -26,7 +26,21 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
     const [isAllDay, setIsAllDay] = useState(existingEvent?.isAllDay || false);
     const [selectedTags, setSelectedTags] = useState<string[]>(existingEvent?.tags || []);
     const [recurrence, setRecurrence] = useState<Event['recurrence']>(existingEvent?.recurrence || 'none');
-    const [alarmOffset, setAlarmOffset] = useState<number | undefined>(existingEvent?.alarmOffset);
+    const [alarmEnabled, setAlarmEnabled] = useState<boolean>(!!existingEvent?.alarmOffset && existingEvent.alarmOffset > 0);
+    const [alarmValue, setAlarmValue] = useState<string>(() => {
+        const offset = existingEvent?.alarmOffset;
+        if (!offset || offset <= 0) return '5';
+        if (offset >= 1440) return Math.floor(offset / 1440).toString(); // days
+        if (offset >= 60) return Math.floor(offset / 60).toString(); // hours
+        return offset.toString(); // minutes
+    });
+    const [alarmUnit, setAlarmUnit] = useState<'minutes' | 'hours' | 'days'>(() => {
+        const offset = existingEvent?.alarmOffset;
+        if (!offset || offset <= 0) return 'minutes';
+        if (offset >= 1440) return 'days';
+        if (offset >= 60) return 'hours';
+        return 'minutes';
+    });
 
     // Recurrence Edit Modal State
     const [showRecurrencePrompt, setShowRecurrencePrompt] = useState(false);
@@ -45,6 +59,56 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
         }
     };
 
+    // Calculate alarm offset in minutes
+    const calculateAlarmOffset = (): number => {
+        if (!alarmEnabled) return -1;
+
+        const value = parseInt(alarmValue) || 5; // Default to 5 if invalid
+
+        let offsetMinutes: number;
+        switch (alarmUnit) {
+            case 'minutes':
+                offsetMinutes = Math.max(1, Math.min(value, 1440)); // 1 min to 24 hours
+                break;
+            case 'hours':
+                offsetMinutes = Math.max(1, Math.min(value * 60, 10080)); // 1 hour to 7 days
+                break;
+            case 'days':
+                offsetMinutes = Math.max(1, Math.min(value * 1440, 43200)); // 1 day to 30 days
+                break;
+            default:
+                offsetMinutes = 5;
+        }
+
+        // Validate that alarm time is in the future
+        if (date && time) {
+            try {
+                const eventDateTime = new Date(`${date}T${time}`);
+                const alarmTime = new Date(eventDateTime.getTime() - (offsetMinutes * 60 * 1000));
+                const now = new Date();
+
+                if (alarmTime <= now) {
+                    // Check if even 5 minutes would be in the past
+                    const fiveMinAlarmTime = new Date(eventDateTime.getTime() - (5 * 60 * 1000));
+                    if (fiveMinAlarmTime <= now) {
+                        // Even 5 minutes would be in the past - don't schedule alarm
+                        console.warn('Event time is in the past. No alarm scheduled.');
+                        return -1; // Disable alarm
+                    } else {
+                        // Alarm would be in the past, default to 5 minutes
+                        console.warn('Alarm time would be in the past. Setting to 5 minutes before event.');
+                        return 5;
+                    }
+                }
+            } catch (error) {
+                console.error('Error validating alarm time:', error);
+                return -1; // Disable on error
+            }
+        }
+
+        return offsetMinutes;
+    };
+
     const handleFinalSave = (mode: 'single' | 'future' | 'all') => {
         const startDateTime = new Date(`${date}T${time}`);
         let endDateTime: Date | undefined;
@@ -60,7 +124,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
             isAllDay,
             tags: selectedTags,
             recurrence,
-            alarmOffset,
+            alarmOffset: calculateAlarmOffset() === -1 ? undefined : calculateAlarmOffset(),
             routineId: existingEvent?.routineId,
             recurringEventId: existingEvent?.recurringEventId
         };
@@ -175,19 +239,87 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSave,
                             {/* Settings */}
                             <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                 {/* Alarm */}
-                                <div className="flex items-center gap-3">
-                                    <Bell size={18} className="text-gray-400" />
-                                    <select
-                                        value={alarmOffset ?? -1}
-                                        onChange={e => setAlarmOffset(e.target.value === '-1' ? undefined : Number(e.target.value))}
-                                        className="bg-transparent text-sm text-text-primary dark:text-text-darkPrimary focus:outline-none flex-1"
-                                    >
-                                        <option value={-1}>No Alarm</option>
-                                        <option value={0}>At time of event</option>
-                                        <option value={10}>10 minutes before</option>
-                                        <option value={30}>30 minutes before</option>
-                                        <option value={60}>1 hour before</option>
-                                    </select>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <Bell size={18} className="text-gray-400" />
+                                        <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                            <div className={`w-8 h-4 flex items-center rounded-full p-0.5 transition-colors ${alarmEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                                <div className={`bg-white w-3 h-3 rounded-full shadow-sm transform transition-transform ${alarmEnabled ? 'translate-x-4' : ''}`}></div>
+                                            </div>
+                                            <span className="text-sm text-text-primary dark:text-text-darkPrimary">Alarm</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={alarmEnabled}
+                                                onChange={e => setAlarmEnabled(e.target.checked)}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Alarm Settings */}
+                                    {alarmEnabled && (
+                                        <div className="flex gap-2 items-end ml-7 animate-in fade-in">
+                                            <div className="flex-1">
+                                                <input
+                                                    type="number"
+                                                    value={alarmValue}
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        if (val === '' || (!isNaN(Number(val)) && Number(val) > 0)) {
+                                                            setAlarmValue(val);
+                                                        }
+                                                    }}
+                                                    min="1"
+                                                    max={alarmUnit === 'minutes' ? '1440' : alarmUnit === 'hours' ? '168' : '30'}
+                                                    className="w-full p-2 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"
+                                                    placeholder="5"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <select
+                                                    value={alarmUnit}
+                                                    onChange={e => setAlarmUnit(e.target.value as 'minutes' | 'hours' | 'days')}
+                                                    className="w-full p-2 rounded bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm"
+                                                >
+                                                    <option value="minutes">min</option>
+                                                    <option value="hours">hrs</option>
+                                                    <option value="days">days</option>
+                                                </select>
+                                            </div>
+                                            {/* Alarm validation warning */}
+                                            {(() => {
+                                                if (!date || !time) return null;
+                                                try {
+                                                    const eventDateTime = new Date(`${date}T${time}`);
+                                                    const value = parseInt(alarmValue) || 5;
+                                                    let offsetMinutes = 0;
+                                                    switch (alarmUnit) {
+                                                        case 'minutes': offsetMinutes = value; break;
+                                                        case 'hours': offsetMinutes = value * 60; break;
+                                                        case 'days': offsetMinutes = value * 1440; break;
+                                                    }
+                                                    const alarmTime = new Date(eventDateTime.getTime() - (offsetMinutes * 60 * 1000));
+                                                    const now = new Date();
+                                                    if (alarmTime <= now) {
+                                                        return (
+                                                            <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 ml-2">
+                                                                <AlertTriangle size={10} />
+                                                                <span>→ 5min</span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                } catch (error) {
+                                                    return (
+                                                        <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 ml-2">
+                                                            <AlertTriangle size={10} />
+                                                            <span>!</span>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Recurrence */}

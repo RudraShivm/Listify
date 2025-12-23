@@ -1,0 +1,79 @@
+/* Code block styling */
+.editor-content pre {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.dark .editor-content pre {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.editor-content code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  color: #dc2626;
+}
+
+.dark .editor-content code {
+  background-color: #1e293b;
+  color: #f87171;
+}
+
+.editor-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+/* Syntax highlighting colors for common languages */
+.editor-content .language-javascript,
+.editor-content .language-typescript,
+.editor-content .language-js,
+.editor-content .language-ts {
+  color: #f8f8f2;
+}
+
+.editor-content .language-python,
+.editor-content .language-py {
+  color: #f8f8f2;
+}
+
+.editor-content .language-html,
+.editor-content .language-xml {
+  color: #f8f8f2;
+}
+
+.editor-content .language-css {
+  color: #f8f8f2;
+}
+
+.editor-content .language-json {
+  color: #f8f8f2;
+}
+
+/* Keyword highlighting */
+.editor-content pre code::before {
+  content: attr(class);
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark .editor-content pre code::before {
+  color: #94a3b8;
+}

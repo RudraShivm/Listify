@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { htmlToMarkdown, markdownToHtml } from '../utils/appUtils';
 
 export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () => void }) => {
-  const { notes, addNote, updateNote, deleteNote, events, setSelectedEventId, setSelectedNoteId, setCurrentView, showToast, settings, setFocusModeActive, tags, addTag, setDraftEvent } = useStore();
+  const { notes, addNote, updateNote, archiveNote, events, setSelectedEventId, setSelectedNoteId, setCurrentView, showToast, settings, setFocusModeActive, tags, addTag, setDraftEvent, restoreEvent } = useStore();
   
   // Use a stable internal ID to prevent creating duplicates during autosave
   const [internalId] = useState(noteId && noteId !== 'new' ? noteId : crypto.randomUUID());
@@ -19,6 +19,8 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
   const [showEventModalSheet, setShowEventModalSheet] = useState(false);
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTagName, setNewTagName] = useState('');
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [selectedCodeLanguage, setSelectedCodeLanguage] = useState('javascript');
   
   const editorRef = useRef<HTMLDivElement>(null);
   // Fix: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> to resolve type error in browser environment
@@ -110,20 +112,50 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
       handleInput();
   };
 
+  // Toggle block formatting (heading/quote)
+  const toggleBlockFormat = (blockType: string) => {
+      editorRef.current?.focus();
+
+      const currentBlock = document.queryCommandValue('formatBlock');
+      if (currentBlock && currentBlock.toLowerCase() === blockType.toLowerCase()) {
+          // Already in this block type, convert to paragraph
+          document.execCommand('formatBlock', false, 'div');
+      } else {
+          // Apply the block formatting
+          document.execCommand('formatBlock', false, blockType);
+      }
+
+      checkActiveFormats();
+      handleInput();
+  };
+
+  // Insert code block
+  const insertCodeBlock = (language: string) => {
+      editorRef.current?.focus();
+
+      // Insert code block with a paragraph break after it so cursor moves outside
+      const codeBlock = `<pre><code class="language-${language}">\n\n</code></pre><p><br></p>`;
+      document.execCommand('insertHTML', false, codeBlock);
+
+      setShowCodeModal(false);
+      handleInput();
+  };
+
   const checkActiveFormats = () => {
       const formats = [];
       if (document.queryCommandState('bold')) formats.push('bold');
       if (document.queryCommandState('italic')) formats.push('italic');
       if (document.queryCommandState('insertUnorderedList')) formats.push('list');
+      if (document.queryCommandState('insertOrderedList')) formats.push('orderedList');
       if (document.queryCommandState('justifyLeft')) formats.push('justifyLeft');
       if (document.queryCommandState('justifyCenter')) formats.push('justifyCenter');
       if (document.queryCommandState('justifyRight')) formats.push('justifyRight');
-      
+
       // formatBlock check
       const blockValue = document.queryCommandValue('formatBlock');
       if (blockValue && (blockValue.toLowerCase() === 'h3' || blockValue.toLowerCase() === 'heading')) formats.push('heading');
       if (blockValue && (blockValue.toLowerCase() === 'blockquote')) formats.push('quote');
-      
+
       setActiveFormats(formats);
   };
 
@@ -145,9 +177,54 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
           if (eventId) {
               e.preventDefault();
               e.stopPropagation();
-              saveContent();
-              setSelectedEventId(eventId);
-              setCurrentView(ViewType.EVENT_EDIT);
+
+              // Check if event exists in active events
+              const activeEvent = events.find(ev => ev.id === eventId);
+
+              if (activeEvent) {
+                  // Event exists and is active
+                  saveContent();
+                  setSelectedEventId(eventId);
+                  setCurrentView(ViewType.EVENT_EDIT);
+              } else {
+                  // Check if event is archived
+                  const archivedEvents = JSON.parse(localStorage.getItem('archivedEvents') || '[]');
+                  const archivedEvent = archivedEvents.find((ev: any) => ev.id === eventId);
+
+                  if (archivedEvent) {
+                      // Event is archived, ask user if they want to restore
+                      const shouldRestore = window.confirm(`This event "${archivedEvent.title}" is archived. Would you like to restore it and open it for editing?`);
+                      if (shouldRestore) {
+                          // Restore the event using the store function
+                          restoreEvent(eventId);
+
+                          saveContent();
+                          setSelectedEventId(eventId);
+                          setCurrentView(ViewType.EVENT_EDIT);
+                          showToast(`Event "${archivedEvent.title}" restored`, 'success');
+                      }
+                  } else {
+                      // Check if event was permanently deleted
+                      const permanentlyDeleted = JSON.parse(localStorage.getItem('permanentlyDeletedMoodleEventIds') || '[]');
+                      const isPermanentlyDeleted = permanentlyDeleted.includes(eventId);
+
+                      if (isPermanentlyDeleted) {
+                          showToast('This event has been permanently deleted and no longer exists.', 'error');
+                          // Remove the broken link from the HTML
+                          if (linkElement && linkElement.parentNode) {
+                              linkElement.parentNode.removeChild(linkElement);
+                              handleInput(); // Trigger save
+                          }
+                      } else {
+                          showToast('Event not found.', 'error');
+                          // Remove the broken link from the HTML
+                          if (linkElement && linkElement.parentNode) {
+                              linkElement.parentNode.removeChild(linkElement);
+                              handleInput(); // Trigger save
+                          }
+                      }
+                  }
+              }
           }
       }
   };
@@ -196,7 +273,12 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
                 />
             </div>
             {existingNote && (
-                <button onClick={() => { deleteNote(existingNote.id); onClose(); }} className="text-red-400 hover:bg-red-50 p-2 rounded-lg">
+                <button onClick={() => {
+                    if (window.confirm("Archive this note? It will be moved to archived notes where you can restore or permanently delete it later.")) {
+                        archiveNote(existingNote.id);
+                        onClose();
+                    }
+                }} className="text-red-400 hover:bg-red-50 p-2 rounded-lg">
                     <Trash2 size={18} />
                 </button>
             )}
@@ -246,9 +328,11 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
           <ToolbarBtn icon={<AlignCenter size={16}/>} onClick={() => execCmd('justifyCenter')} label="Align Center" active={activeFormats.includes('justifyCenter')}/>
           <ToolbarBtn icon={<AlignRight size={16}/>} onClick={() => execCmd('justifyRight')} label="Align Right" active={activeFormats.includes('justifyRight')}/>
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-2"/>
-          <ToolbarBtn icon={<Heading size={16}/>} onClick={() => execCmd('formatBlock', '<h3>')} label="Heading" active={activeFormats.includes('heading')}/>
-          <ToolbarBtn icon={<Quote size={16}/>} onClick={() => execCmd('formatBlock', 'blockquote')} label="Quote" active={activeFormats.includes('quote')}/>
-          <ToolbarBtn icon={<List size={16}/>} onClick={() => execCmd('insertUnorderedList')} label="List" active={activeFormats.includes('list')}/>
+          <ToolbarBtn icon={<Heading size={16}/>} onClick={() => toggleBlockFormat('h3')} label="Heading" active={activeFormats.includes('heading')}/>
+          <ToolbarBtn icon={<Quote size={16}/>} onClick={() => toggleBlockFormat('blockquote')} label="Quote" active={activeFormats.includes('quote')}/>
+          <ToolbarBtn icon={<Code size={16}/>} onClick={() => setShowCodeModal(true)} label="Code Block" active={false}/>
+          <ToolbarBtn icon={<List size={16}/>} onClick={() => execCmd('insertUnorderedList')} label="Bullet List" active={activeFormats.includes('list')}/>
+          <ToolbarBtn icon={<span className="text-xs font-bold">1.</span>} onClick={() => execCmd('insertOrderedList')} label="Numbered List" active={activeFormats.includes('orderedList')}/>
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-700 mx-2"/>
           <button 
             onClick={() => setShowEventModalSheet(true)}
@@ -311,6 +395,36 @@ export const NoteEditor = ({ noteId, onClose }: { noteId?: string; onClose: () =
               </div>
           </div>
       )}
+
+      {/* Code Language Selector Modal */}
+      {showCodeModal && (
+        <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm flex items-end md:items-center justify-center p-4">
+          <div
+            className="bg-surface-light dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-xl flex flex-col max-h-[60%] animate-in slide-in-from-bottom-10 mb-20 md:mb-0 border border-gray-200 dark:border-gray-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="font-semibold text-text-light dark:text-text-dark">Select Code Language</h3>
+              <button onClick={() => setShowCodeModal(false)}><X size={20}/></button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-2">
+              {[
+                'javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'php', 'ruby', 'go', 'rust',
+                'swift', 'kotlin', 'dart', 'scala', 'html', 'css', 'scss', 'sass', 'less', 'json', 'xml', 'yaml',
+                'markdown', 'sql', 'bash', 'powershell', 'dockerfile', 'makefile', 'plaintext'
+              ].map(lang => (
+                <button
+                  key={lang}
+                  onClick={() => insertCodeBlock(lang)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl capitalize"
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -326,7 +440,7 @@ const ToolbarBtn = ({ icon, onClick, label, active }: any) => (
 );
 
 export const NotesList = () => {
-    const { notes, searchQuery, selectedNoteId, setSelectedNoteId, goBack, tags, draftEvent, currentView } = useStore();
+    const { notes, searchQuery, selectedNoteId, setSelectedNoteId, setCurrentView, goBack, tags, draftEvent, currentView } = useStore();
 
     // Filter by Title OR Tags (matching tag name with search query)
     const filtered = notes.filter(n => {
@@ -372,9 +486,14 @@ export const NotesList = () => {
         <div className="h-full flex flex-col">
              <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold">Notes</h2>
-                <button onClick={() => setSelectedNoteId('new')} className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
-                    <Plus size={18} /> New Note
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => setCurrentView(ViewType.NOTE_ARCHIVE)} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
+                        <Trash2 size={18} /> Archived
+                    </button>
+                    <button onClick={() => setSelectedNoteId('new')} className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm">
+                        <Plus size={18} /> New Note
+                    </button>
+                </div>
              </div>
              
              {/* Tag Cloud for Filtering Suggestion */}
@@ -388,9 +507,9 @@ export const NotesList = () => {
                  {filtered.map(note => (
                      <div key={note.id} onClick={() => setSelectedNoteId(note.id)} className="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-gray-200 dark:border-gray-800 hover:shadow-md cursor-pointer h-auto min-h-[160px] flex flex-col transition-all group">
                          <h3 className="font-semibold text-lg mb-2 line-clamp-1">{note.title}</h3>
-                         <div className="text-sm text-gray-500 line-clamp-6 flex-1 opacity-70">
-                             {note.content.replace(/<[^>]+>/g, ' ')}
-                         </div>
+                         <div className="text-sm text-gray-500 line-clamp-6 flex-1 opacity-70 prose prose-sm max-w-none dark:prose-invert"
+                              dangerouslySetInnerHTML={{ __html: markdownToHtml(note.content) }}
+                         />
                          <div className="mt-4 text-xs text-gray-400 flex justify-between items-center">
                              <span>{format(new Date(note.updatedAt), 'dd/MM/yyyy')}</span>
                              <div className="flex gap-1">

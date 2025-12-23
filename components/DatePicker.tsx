@@ -29,6 +29,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const buttonRef = useRef<HTMLButtonElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
 
+    // Sync selectedDate with value prop
+    useEffect(() => {
+        setSelectedDate(value ? new Date(value) : undefined);
+    }, [value]);
+
     // Calculate modal position based on button location and available space
     useEffect(() => {
         if (isOpen && buttonRef.current) {

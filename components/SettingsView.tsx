@@ -1,13 +1,13 @@
 
 import React, { useRef, useState } from 'react';
 import { useStore } from '../context/Store';
-import { Download, Upload, Monitor, Database, Trash2, Calendar, Coffee, Layout, Smartphone, GripVertical, Palette, AlertCircle, Check } from 'lucide-react';
+import { Download, Upload, Monitor, Database, Trash2, Calendar, Coffee, Layout, Smartphone, GripVertical, Palette, AlertCircle, Check, Bell } from 'lucide-react';
 import { ViewType } from '../types';
 import { NAV_ITEMS } from './Sidebar';
 import { THEMES } from '../constants';
 
 export const SettingsView = () => {
-    const { settings, setSettings, exportData, importBackup, clearData, user, isSyncing } = useStore();
+    const { settings, setSettings, exportData, importBackup, clearData, user, isSyncing, notificationPermission, requestNotificationPermission } = useStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
@@ -305,7 +305,203 @@ export const SettingsView = () => {
                     </div>
                 </div>
             </section>
-            
+
+            {/* Notifications & Alarms */}
+            <section className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Bell size={20} className="text-primary"/> Notifications & Alarms
+                </h3>
+                <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+                    <div className="space-y-6">
+                        {/* Notification Permission */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">Browser Notifications</span>
+                                    <span className="block text-xs text-gray-500">
+                                        {notificationPermission === 'granted' && 'Notifications enabled'}
+                                        {notificationPermission === 'denied' && 'Notifications blocked - check browser settings'}
+                                        {notificationPermission === 'default' && 'Click to enable event alarms'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={requestNotificationPermission}
+                                    disabled={notificationPermission === 'granted'}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                        notificationPermission === 'granted'
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                            : 'bg-primary text-white hover:bg-primary/90 disabled:opacity-50'
+                                    }`}
+                                >
+                                    {notificationPermission === 'granted' && 'Enabled ✓'}
+                                    {notificationPermission === 'denied' && 'Blocked'}
+                                    {notificationPermission === 'default' && 'Enable'}
+                                </button>
+                            </div>
+
+                            {/* Test Notification Button */}
+                            {notificationPermission === 'granted' && (
+                                <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">Test Notification</span>
+                                            <span className="block text-xs text-gray-500">Send a test notification to verify it works</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                try {
+                                                const notification = new Notification('Test Notification', {
+                                                    body: 'This is a test of the alarm system. If you see this, notifications are working!',
+                                                    tag: 'test-notification',
+                                                    requireInteraction: true
+                                                });
+                                                    setTimeout(() => {
+                                                        if (!notification.closed) {
+                                                            notification.close();
+                                                        }
+                                                    }, 5000);
+                                                } catch (error) {
+                                                    console.error('Test notification failed:', error);
+                                                    alert('Test notification failed. Check console for details.');
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                        >
+                                            Test
+                                        </button>
+                                    </div>
+
+                                    {/* Debug Info */}
+                                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                                        <span className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Debug Info:</span>
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                            <div>Permission: {notificationPermission}</div>
+                                            <div>Service Worker: {'serviceWorker' in navigator ? 'Supported' : 'Not supported'}</div>
+                                            <div>Notifications API: {'Notification' in window ? 'Available' : 'Not available'}</div>
+                                            <div                                             onClick={() => {
+                                                // Debug info removed for production
+                                            }}>
+                                                <button className="text-blue-600 hover:text-blue-800 underline">Click to log debug info to console</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Alarm Info */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                                <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">How Alarms Work</h4>
+                                    <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                                        <li>• Set alarm offset when creating/editing events</li>
+                                        <li>• Notifications appear when alarm time is reached</li>
+                                        <li>• Alarms only work when browser tab is open</li>
+                                        <li>• For persistent alarms, consider using a mobile app</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Moodle Integration */}
+            <section className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Database size={20} className="text-primary"/> Moodle Integration
+                </h3>
+                <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+                    <div className="space-y-6">
+                        {/* Enable Moodle Toggle */}
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${settings.moodleEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${settings.moodleEnabled ? 'translate-x-4' : ''}`}></div>
+                            </div>
+                            <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={settings.moodleEnabled}
+                                onChange={(e) => setSettings({...settings, moodleEnabled: e.target.checked})}
+                            />
+                            <div className="flex-1">
+                                <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">Enable Moodle Events</span>
+                                <span className="block text-xs text-gray-500">Automatically sync calendar events from your Moodle instance</span>
+                            </div>
+                        </label>
+
+                        {/* Moodle Configuration */}
+                        {settings.moodleEnabled && (
+                            <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Moodle URL</label>
+                                    <input
+                                        type="url"
+                                        value={settings.moodleUrl}
+                                        onChange={(e) => setSettings({...settings, moodleUrl: e.target.value})}
+                                        placeholder="https://your-moodle-instance.com"
+                                        className="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
+                                        <input
+                                            type="text"
+                                            value={settings.moodleUsername}
+                                            onChange={(e) => setSettings({...settings, moodleUsername: e.target.value})}
+                                            placeholder="Your Moodle username"
+                                            className="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                                        <input
+                                            type="password"
+                                            value={settings.moodlePassword}
+                                            onChange={(e) => setSettings({...settings, moodlePassword: e.target.value})}
+                                            placeholder="Your Moodle password"
+                                            className="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="text-xs text-gray-500">
+                                    Your credentials are stored locally and only used to fetch calendar events from Moodle.
+                                    They are never sent to our servers.
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (window.confirm('This will clear all Moodle-related archived/deleted event states. Moodle events may reappear in your calendar. Continue?')) {
+                                                // Clear Moodle state from localStorage
+                                                localStorage.removeItem('archivedMoodleEventIds');
+                                                localStorage.removeItem('permanentlyDeletedMoodleEventIds');
+                                                // Reload to reset state
+                                                window.location.reload();
+                                            }
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors text-sm font-medium"
+                                    >
+                                        <Trash2 size={16} />
+                                        Clear Moodle State
+                                    </button>
+                                    <p className="text-center text-xs text-orange-400 mt-2">
+                                        Reset archived/deleted status for all Moodle events
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
             {/* Data Management */}
             <section className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">

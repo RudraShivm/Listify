@@ -28,25 +28,56 @@ const getStartOfWeek = (date: Date, weekStartsOn: number) => {
 };
 
 export const CalendarViews = ({ view }: { view: 'today' | 'week' | 'month' | 'year' }) => {
-    const { events, dailyTodos, toggleTodo, getTodosForDate, setSelectedEventId, setCurrentView, settings, searchQuery, tags } = useStore();
+    const { events, dailyTodos, toggleTodo, getTodosForDate, setSelectedEventId, setCurrentView, settings, searchQuery, tags, routines } = useStore();
     
     // State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [currentViewMode, setCurrentViewMode] = useState<'month' | 'week'>('month');
     const [dayViewDate, setDayViewDate] = useState<Date | null>(null);
     const [showCreateMenu, setShowCreateMenu] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
 
     // Helpers based on settings
     const weekStartMap = { 'sunday': 0, 'monday': 1, 'saturday': 6 };
     const weekStartIndex = weekStartMap[settings.startOfWeek];
     const is24h = settings.timeFormat === '24h';
 
-    // Filter events by search query if present
+    // Filter events by search query and active filters
     const filteredEvents = events.filter(e => {
+        // Apply filter chips first
+        if (activeFilters.has('moodle') && !e.moodleEventId) return false;
+        if (activeFilters.size > 0 && !activeFilters.has('moodle')) return false; // If filters active but not moodle, show nothing
+
+        // Apply search query
         if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         
-        // Find matching tag IDs
+        // Special search syntax: routine:[name] or routine:[name]:[event]
+        if (q.startsWith('routine:')) {
+            const routineQuery = q.substring(8); // Remove "routine:" prefix
+            const [routineName, eventName] = routineQuery.split(':').map(s => s.trim());
+
+            if (!e.routineId) return false;
+
+            // Check if routine name matches
+            const routine = routines.find(r => r.id === e.routineId);
+            if (!routine || !routine.name.toLowerCase().includes(routineName)) return false;
+
+            // If event name is specified, also check event title
+            if (eventName) {
+                return e.title.toLowerCase().includes(eventName);
+            }
+
+            return true;
+        }
+
+        // Moodle search: moodle:[event name]
+        if (q.startsWith('moodle:')) {
+            const eventName = q.substring(7).trim(); // Remove "moodle:" prefix
+            return e.moodleEventId && e.title.toLowerCase().includes(eventName);
+        }
+
+        // Regular search (title, description, tags)
         const matchingTagIds = tags.filter(t => t.name.toLowerCase().includes(q)).map(t => t.id);
 
         return e.title.toLowerCase().includes(q) || 
@@ -85,9 +116,35 @@ export const CalendarViews = ({ view }: { view: 'today' | 'week' | 'month' | 'ye
         return (
             <div className="max-w-3xl mx-auto h-full flex flex-col relative">
                 <div className="flex justify-between items-center mb-6">
+                    <div>
                     <h2 className="text-2xl font-semibold text-text-primary dark:text-text-darkPrimary">
                         Today, {format(today, 'MMMM do')}
                     </h2>
+                        {/* Filter Chips */}
+                        {settings.moodleEnabled && (
+                            <div className="flex gap-2 mt-2">
+                                <button
+                                    onClick={() => {
+                                        const newFilters = new Set(activeFilters);
+                                        if (newFilters.has('moodle')) {
+                                            newFilters.delete('moodle');
+                                        } else {
+                                            newFilters.clear(); // Clear other filters when selecting moodle
+                                            newFilters.add('moodle');
+                                        }
+                                        setActiveFilters(newFilters);
+                                    }}
+                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                                        activeFilters.has('moodle')
+                                            ? 'bg-primary text-white'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                    }`}
+                                >
+                                    Moodle Events
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <div className="relative">
                         <button onClick={() => setShowCreateMenu(!showCreateMenu)} className="p-2 bg-primary text-white rounded-lg hover:bg-primary-dark">
                             <Plus size={20} />

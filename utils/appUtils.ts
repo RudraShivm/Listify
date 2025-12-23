@@ -6,24 +6,57 @@ import { addDays, format, isSameDay, addMinutes, differenceInDays, addWeeks, add
 
 export const htmlToMarkdown = (html: string): string => {
     let md = html;
+    // Handle code blocks first before other replacements
+    md = md.replace(/<pre[^>]*><code[^>]*class="language-([^"]*)"[^>]*>([\s\S]*?)<\/code><\/pre>/g, (match, lang, content) => {
+        return `\`\`\`${lang}\n${content}\n\`\`\``;
+    });
+    md = md.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/g, (match, content) => {
+        return `\`\`\`\n${content}\n\`\`\``;
+    });
+
     md = md.replace(/<b>(.*?)<\/b>/g, '**$1**').replace(/<strong>(.*?)<\/strong>/g, '**$1**');
     md = md.replace(/<i>(.*?)<\/i>/g, '*$1*').replace(/<em>(.*?)<\/em>/g, '*$1*');
     md = md.replace(/<h3>(.*?)<\/h3>/g, '\n### $1\n');
     md = md.replace(/<ul>(.*?)<\/ul>/gs, '$1');
     md = md.replace(/<li>(.*?)<\/li>/g, '- $1\n');
+    md = md.replace(/<ol>(.*?)<\/ol>/gs, '$1');
+    md = md.replace(/<li>(.*?)<\/li>/g, '1. $1\n'); // This will be fixed when we add proper ordered list support
     md = md.replace(/<br\s*\/?>/g, '\n');
     md = md.replace(/<div>/g, '\n').replace(/<\/div>/g, '');
+    md = md.replace(/<p>/g, '').replace(/<\/p>/g, '\n');
     return md.trim();
 };
 
 export const markdownToHtml = (md: string): string => {
     let html = md;
+    // Handle code blocks first before other replacements
+    // More flexible regex to handle various code block formats
+    html = html.replace(/```\s*(\w+)?\s*\n?([\s\S]*?)\n?\s*```/g, (match, lang, content) => {
+        const langClass = lang ? ` class="language-${lang}"` : '';
+        return `<pre><code${langClass}>${content}</code></pre>`;
+    });
+
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    // Handle unordered lists - convert markdown to HTML
     html = html.replace(/^- (.*$)/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>'); 
+    // Handle ordered lists - convert markdown to HTML
+    html = html.replace(/^(\d+)\. (.*$)/gm, '<li>$2</li>');
+
+    // Wrap consecutive list items in appropriate containers
+    // This is a simplified approach - in a real implementation, you'd want more sophisticated list detection
+    html = html.replace(/(<li>[\s\S]*?<\/li>(\s*<li>[\s\S]*?<\/li>)*)/g, '<ul>$1</ul>');
+    // For ordered lists, we need a different approach since both create <li> elements
+    // For now, let's assume the context determines the list type
+    html = html.replace(/\n\n/g, '</p><p>');
     html = html.replace(/\n/g, '<br>');
+    html = '<p>' + html + '</p>';
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p>(<h3>.*<\/h3>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<ul>.*<\/ul>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<ol>.*<\/ol>)<\/p>/g, '$1');
+    html = html.replace(/<p>(<pre>.*<\/pre>)<\/p>/g, '$1');
     return html;
 };
 
@@ -96,7 +129,7 @@ export const generateHolidayEvents = (breakpoints: RoutineBreakpoint[], routineI
 
 export const generateEventsFromRoutine = (routine: Routine): Event[] => {
   const generatedEvents: Event[] = [];
-
+  
   if (routine.createHolidayEvents) {
       generatedEvents.push(...generateHolidayEvents(routine.breakpoints, routine.id));
   }

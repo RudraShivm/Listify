@@ -7,7 +7,9 @@ export enum ViewType {
   TODOS = 'todos',
   ROUTINES = 'routines',
   SETTINGS = 'settings',
-  EVENT_EDIT = 'event_edit'
+  EVENT_EDIT = 'event_edit',
+  EVENT_ARCHIVE = 'event_archive',
+  NOTE_ARCHIVE = 'note_archive'
 }
 
 export interface Tag {
@@ -37,6 +39,9 @@ export interface Event {
   recurrenceEnd?: string; // ISO String or null/undefined for forever
   routineId?: string; 
   recurringEventId?: string; // ID of the parent/group
+  moodleEventId?: string; // Moodle event ID for external events
+  courseName?: string; // Course name for Moodle events
+  url?: string; // URL for Moodle events
   // For preserving recurrence rules if needed for regeneration
   breakpoints?: RoutineBreakpoint[]; 
 }
@@ -81,6 +86,14 @@ export interface Routine {
   }[];
 }
 
+export interface ArchivedEvent extends Event {
+  archivedAt: string; // ISO string when archived
+}
+
+export interface ArchivedNote extends Note {
+  archivedAt: string; // ISO string when archived
+}
+
 export interface AppSettings {
   moveCompletedTodosToBottom: boolean;
   upcomingWindow: number;
@@ -94,6 +107,10 @@ export interface AppSettings {
   defaultView: ViewType;
   focusMode: boolean; // Hide sidebar when typing in notes
   mobileBottomBarItems: ViewType[]; // Ordered list of views to show in mobile bottom bar
+  moodleEnabled: boolean; // Whether to fetch Moodle events
+  moodleUrl: string; // Moodle instance URL
+  moodleUsername: string; // Moodle username
+  moodlePassword: string; // Moodle password (stored encrypted)
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system';

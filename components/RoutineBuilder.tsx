@@ -276,20 +276,28 @@ export const RoutineBuilder = () => {
                             </div>
                         ))}
                     </div>
-                    <div className="flex flex-col md:flex-row gap-3 items-end bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl">
-                        <div className="flex-1 w-full">
-                            <label className="text-xs text-gray-500 mb-1 block">Name</label>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl space-y-4">
+                        <div className="w-full">
+                            <label className="text-xs text-gray-500 mb-1 block">Holiday Name</label>
                             <input type="text" value={newHolidayName} onChange={e => setNewHolidayName(e.target.value)} className="w-full p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
                         </div>
-                        <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Start</label>
-                            <DatePicker value={newHolidayStart} onChange={setNewHolidayStart} placeholder="Start date" className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
+                                <DatePicker value={newHolidayStart} onChange={setNewHolidayStart} placeholder="Start date" className="w-full p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
                         </div>
                         <div>
-                            <label className="text-xs text-gray-500 mb-1 block">End</label>
-                            <DatePicker value={newHolidayEnd} onChange={setNewHolidayEnd} placeholder="End date" className="p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
+                                <label className="text-xs text-gray-500 mb-1 block">End Date</label>
+                                <DatePicker value={newHolidayEnd} onChange={setNewHolidayEnd} placeholder="End date" className="w-full p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm" />
+                            </div>
                         </div>
-                        <button onClick={confirmAddHoliday} className="p-2 bg-primary text-white rounded hover:bg-primary-dark"><Plus size={20} /></button>
+
+                        <div className="flex justify-end">
+                            <button onClick={confirmAddHoliday} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                                <Plus size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
